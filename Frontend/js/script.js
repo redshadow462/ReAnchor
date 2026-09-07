@@ -1093,11 +1093,33 @@ if (registerPasskeyButton) {
         registerFingerprint
     );
 }
+
 const passkeyLoginButton =
     document.getElementById(
         "passkey-login"
     );
 
+if (passkeyLoginButton) {
+
+    passkeyLoginButton.addEventListener(
+        "click",
+        loginWithPasskey
+    );
+
+}
+const passkey2FAButton =
+    document.getElementById(
+        "use-passkey-2fa"
+    );
+
+if (passkey2FAButton) {
+
+    passkey2FAButton.addEventListener(
+        "click",
+        loginWithPasskey
+    );
+
+}
 // =========================
 // LOGOUT
 // =========================
