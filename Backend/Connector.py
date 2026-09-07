@@ -9,7 +9,7 @@ mycon = ms.connect(
     host='localhost',
     user='root',
     password='Aswin@303',
-    database='Reauth'
+    database='Reauth' 
 )
 
 mycur = mycon.cursor()
