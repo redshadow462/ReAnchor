@@ -764,55 +764,79 @@ function displayRecoveryCodes(codes) {
 
 
 // =========================
+
 // TWO-FACTOR LOGIN
+
 // =========================
 
 function showTwoFactorChallenge() {
+
     showTwoFactorScreen();
+
 }
 
 const twoFactorForm =
+
     document.getElementById(
+
         "two-factor-form"
+
     );
 
 if (twoFactorForm) {
 
     twoFactorForm.addEventListener(
+
         "submit",
+
         async function (event) {
 
             event.preventDefault();
 
             const otp =
+
                 document
+
                     .getElementById("two-factor-code")
+
                     .value
+
                     .trim();
 
             const errorElement =
+
                 document.getElementById(
+
                     "two-factor-error"
+
                 );
 
             if (errorElement) {
+
                 errorElement.textContent = "";
+
                 errorElement.hidden = true;
+
             }
 
             if (!/^\d{6}$/.test(otp)) {
 
                 if (errorElement) {
+
                     errorElement.textContent =
+
                         "Please enter a valid 6-digit code.";
 
                     errorElement.hidden = false;
+
                 }
 
                 return;
+
             }
 
             const formData =
+
                 new FormData();
 
             formData.append("otp", otp);
@@ -820,36 +844,49 @@ if (twoFactorForm) {
             try {
 
                 const response =
+
                     await fetch(
+
                         "/2fa/challenge",
+
                         {
+
                             method: "POST",
+
                             body: formData
+
                         }
+
                     );
 
                 const data =
+
                     await response.json();
 
                 if (!response.ok) {
 
                     if (errorElement) {
+
                         errorElement.textContent =
+
                             data.error ||
+
                             "Invalid verification code.";
 
                         errorElement.hidden = false;
+
                     }
 
                     return;
+
                 }
 
-                    if (data.status === "ok") {
+                if (data.status === "ok") {
 
-                        twoFactorForm.reset();
+                    twoFactorForm.reset();
 
-                        showDashboard();
-                    }
+                    showDashboard();
+
                 }
 
             } catch (error) {
@@ -857,20 +894,22 @@ if (twoFactorForm) {
                 console.error(error);
 
                 if (errorElement) {
+
                     errorElement.textContent =
+
                         "Unable to connect to the ReAnchor server.";
 
                     errorElement.hidden = false;
+
                 }
+
             }
+
         }
+
     );
+
 }
-
-
-// =========================
-// RECOVERY CODE CONFIRMATION
-// =========================
 
 const confirmRecoveryButton =
     document.getElementById(
