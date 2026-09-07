@@ -367,9 +367,6 @@ def webauthn_login_verify():
     session.pop("pending_user_id", None)
     session["user_id"] = user_id
     return jsonify({"status": "ok", "message": "Passkey login successful."}), 200
-# =========================
-# RECOVERY LOGIN
-# =========================
 
 @app.route("/recovery", methods=["POST"])
 def recovery_login():
@@ -445,6 +442,6 @@ def recovery_login():
         "status": "ok",
         "message": "Recovery verification successful."
     }), 200
-    
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
