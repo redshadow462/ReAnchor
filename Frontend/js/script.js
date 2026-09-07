@@ -44,6 +44,117 @@ function showRecoveryCodes() {
         .classList.add("active");
 }
 
+function showRecoveryCodes() {
+    hideAllScreens();
+
+    document
+        .getElementById("recovery-codes-screen")
+        .classList.add("active");
+}
+
+
+// =========================
+// WEBAUTHN HELPERS
+// =========================
+
+function base64urlToBuffer(base64url) {
+
+    const padding =
+        "=".repeat((4 - (base64url.length % 4)) % 4);
+
+    const base64 =
+        (base64url + padding)
+            .replace(/-/g, "+")
+            .replace(/_/g, "/");
+
+    const binary = atob(base64);
+
+    const buffer =
+        new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i++) {
+        buffer[i] = binary.charCodeAt(i);
+    }
+
+    return buffer.buffer;
+}
+
+
+function bufferToBase64url(buffer) {
+
+    const bytes =
+        new Uint8Array(buffer);
+
+    let binary = "";
+
+    for (const byte of bytes) {
+        binary += String.fromCharCode(byte);
+    }
+
+    return btoa(binary)
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+}
+
+
+function credentialToJSON(credential) {
+
+    const response =
+        credential.response;
+
+    const result = {
+        id: credential.id,
+        rawId: bufferToBase64url(
+            credential.rawId
+        ),
+        type: credential.type
+    };
+
+    if (response.attestationObject) {
+
+        result.response = {
+            clientDataJSON:
+                bufferToBase64url(
+                    response.clientDataJSON
+                ),
+
+            attestationObject:
+                bufferToBase64url(
+                    response.attestationObject
+                )
+        };
+
+    } else {
+
+        result.response = {
+            clientDataJSON:
+                bufferToBase64url(
+                    response.clientDataJSON
+                ),
+
+            authenticatorData:
+                bufferToBase64url(
+                    response.authenticatorData
+                ),
+
+            signature:
+                bufferToBase64url(
+                    response.signature
+                ),
+
+            userHandle:
+                response.userHandle
+                    ? bufferToBase64url(
+                        response.userHandle
+                    )
+                    : null
+        };
+    }
+
+    return result;
+}
+
 
 // =========================
 // LOGO → LOGIN
@@ -257,6 +368,144 @@ async function setupAuthenticator() {
         alert(
             "Unable to connect to the ReAnchor server."
         );
+    }
+}
+
+// =========================
+// WEBAUTHN REGISTRATION
+// =========================
+
+async function registerFingerprint() {
+
+    const errorElement =
+        document.getElementById(
+            "webauthn-register-error"
+        );
+
+    if (errorElement) {
+        errorElement.textContent = "";
+        errorElement.hidden = true;
+    }
+
+    if (!window.PublicKeyCredential) {
+
+        if (errorElement) {
+            errorElement.textContent =
+                "Passkeys are not supported by this browser.";
+
+            errorElement.hidden = false;
+        }
+
+        return;
+    }
+
+    try {
+
+        const response =
+            await fetch(
+                "/webauthn/register/options",
+                {
+                    method: "POST"
+                }
+            );
+
+        const options =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                options.error ||
+                "Unable to start passkey registration."
+            );
+        }
+
+        options.challenge =
+            base64urlToBuffer(
+                options.challenge
+            );
+
+        if (options.user &&
+            options.user.id) {
+
+            options.user.id =
+                base64urlToBuffer(
+                    options.user.id
+                );
+        }
+
+        if (options.excludeCredentials) {
+
+            options.excludeCredentials =
+                options.excludeCredentials.map(
+                    function (credential) {
+
+                        return {
+                            ...credential,
+                            id:
+                                base64urlToBuffer(
+                                    credential.id
+                                )
+                        };
+                    }
+                );
+        }
+
+        const credential =
+            await navigator.credentials.create({
+                publicKey: options
+            });
+
+        if (!credential) {
+            throw new Error(
+                "Passkey registration was cancelled."
+            );
+        }
+
+        const verifyResponse =
+            await fetch(
+                "/webauthn/register/verify",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify(
+                        credentialToJSON(
+                            credential
+                        )
+                    )
+                }
+            );
+
+        const result =
+            await verifyResponse.json();
+
+        if (!verifyResponse.ok) {
+            throw new Error(
+                result.error ||
+                "Passkey registration failed."
+            );
+        }
+
+        alert(
+            "Passkey registered successfully."
+        );
+
+    } catch (error) {
+
+        console.error(error);
+
+        if (errorElement) {
+
+            errorElement.textContent =
+                error.message ||
+                "Passkey registration failed.";
+
+            errorElement.hidden = false;
+        }
     }
 }
 
@@ -696,5 +945,22 @@ if (recoveryForm) {
                 "Recovery verification will be connected next."
             );
         }
+    );
+}
+
+// =========================
+// REGISTER PASSKEY BUTTON
+// =========================
+
+const registerPasskeyButton =
+    document.getElementById(
+        "register-passkey"
+    );
+
+if (registerPasskeyButton) {
+
+    registerPasskeyButton.addEventListener(
+        "click",
+        registerFingerprint
     );
 }

@@ -405,7 +405,20 @@
                 >
                     Activate Authenticator
                 </button>
+                <div class="webauthn-section">
+                    <h2>Secure Your Account</h2>
 
+                    <p>
+                        Register a passkey using your device's biometric authentication
+                        or device PIN.
+                    </p>
+
+                    <button type="button" id="register-passkey">
+                        Register Passkey
+                    </button>
+
+                    <p id="webauthn-register-error" class="setup-error" hidden></p>
+                </div>
                 <p
                     id="totp-error"
                     class="setup-error"

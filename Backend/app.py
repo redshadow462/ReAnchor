@@ -6,11 +6,32 @@ import os
 from dotenv import load_dotenv
 import secrets
 import string
+import base64
+
+from webauthn import (
+    generate_registration_options,
+    verify_registration_response,
+    generate_authentication_options,
+    verify_authentication_response,
+    options_to_json,
+)
+
+from webauthn.helpers.structs import (
+    PublicKeyCredentialDescriptor,
+    AuthenticatorSelectionCriteria,
+    UserVerificationRequirement,
+)
+from webauthn.helpers import base64url_to_bytes
+
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY")
+
+RP_ID = "localhost"
+RP_NAME = "ReAnchor"
+ORIGIN = "http://localhost:5000"
 
 ph = PasswordHasher()
 
@@ -27,6 +48,9 @@ def get_db_connection():
         password=os.environ.get("DB_PASSWORD"),
         database=os.environ.get("DB_NAME")
     )
+def bytes_to_base64url(data):
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
 def generate_recovery_code():
     alphabet = string.ascii_uppercase + string.digits
 
@@ -597,6 +621,176 @@ def logout():
         "message": "Logged out successfully"
     }), 200
 
+@app.route("/webauthn/register/options", methods=["POST"])
+def webauthn_register_options():
+
+    if "user_id" not in session:
+        return jsonify({
+            "error": "Not authenticated"
+        }), 401
+
+    user_id = session["user_id"]
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT username
+        FROM users
+        WHERE user_id = %s
+        """,
+        (user_id,)
+    )
+
+    user_row = cursor.fetchone()
+
+    if not user_row:
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "error": "User not found"
+        }), 404
+
+    username = user_row[0]
+
+    cursor.execute(
+        """
+        SELECT credential_id
+        FROM webauthn_credentials
+        WHERE user_id = %s
+        """,
+        (user_id,)
+    )
+
+    credential_rows = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    exclude_credentials = [
+        PublicKeyCredentialDescriptor(
+            id=row[0]
+        )
+        for row in credential_rows
+    ]
+
+    options = generate_registration_options(
+        rp_id=RP_ID,
+        rp_name=RP_NAME,
+        user_id=str(user_id).encode("utf-8"),
+        user_name=username,
+        user_display_name=username,
+        exclude_credentials=exclude_credentials,
+        authenticator_selection=AuthenticatorSelectionCriteria(
+            user_verification=UserVerificationRequirement.REQUIRED
+        )
+    )
+
+    session["webauthn_register_challenge"] = bytes_to_base64url(
+        options.challenge
+    )
+
+    return options_to_json(options), 200
+
+@app.route("/webauthn/register/verify", methods=["POST"])
+def webauthn_register_verify():
+
+    if "user_id" not in session:
+        return jsonify({
+            "error": "Not authenticated"
+        }), 401
+
+    user_id = session["user_id"]
+
+    challenge_b64 = session.get(
+        "webauthn_register_challenge"
+    )
+
+    if not challenge_b64:
+        return jsonify({
+            "error": "Registration challenge expired or missing."
+        }), 400
+
+    credential = request.get_json()
+
+    if not credential:
+        return jsonify({
+            "error": "Credential data is required."
+        }), 400
+
+    try:
+
+        expected_challenge = base64url_to_bytes(
+                challenge_b64
+            )
+
+        verification = verify_registration_response(
+                credential=credential,
+                expected_challenge=expected_challenge,
+                expected_origin=ORIGIN,
+                expected_rp_id=RP_ID
+            )
+
+    except Exception as e:
+
+        return jsonify({
+            "error":
+                f"WebAuthn verification failed: {str(e)}"
+        }), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+
+        cursor.execute(
+            """
+            INSERT INTO webauthn_credentials
+                (
+                    user_id,
+                    credential_id,
+                    public_key,
+                    sign_count
+                )
+            VALUES
+                (%s, %s, %s, %s)
+            """,
+            (
+                user_id,
+                verification.credential_id,
+                verification.credential_public_key,
+                verification.sign_count
+            )
+        )
+
+        conn.commit()
+
+    except mysql.connector.Error as e:
+
+        conn.rollback()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "error":
+                f"Unable to store passkey: {str(e)}"
+        }), 500
+
+    cursor.close()
+    conn.close()
+
+    session.pop(
+        "webauthn_register_challenge",
+        None
+    )
+
+    return jsonify({
+        "status": "registered",
+        "message": "Passkey registered successfully."
+    }), 200
 
 if __name__ == "__main__":
     app.run(
