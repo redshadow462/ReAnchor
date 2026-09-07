@@ -1231,3 +1231,176 @@ if (logoutButton) {
         }
     );
 }
+
+const registerPassword =
+    document.getElementById("register-password");
+
+const strengthFill =
+    document.getElementById("password-strength-fill");
+
+const strengthText =
+    document.getElementById("password-strength-text");
+
+if (registerPassword) {
+
+    registerPassword.addEventListener("input", function () {
+
+        const password = registerPassword.value;
+
+        let score = 0;
+
+        if (password.length >= 12) score++;
+        if (/[A-Z]/.test(password)) score++;
+        if (/[a-z]/.test(password)) score++;
+        if (/[0-9]/.test(password)) score++;
+        if (/[^A-Za-z0-9]/.test(password)) score++;
+
+        if (password.length === 0) {
+
+            strengthText.textContent =
+                "Password strength: Weak";
+
+            strengthFill.style.width = "0%";
+
+        } else if (score <= 2) {
+
+            strengthText.textContent =
+                "Password strength: Weak";
+
+            strengthFill.style.width = "33%";
+
+        } else if (score <= 4) {
+
+            strengthText.textContent =
+                "Password strength: Medium";
+
+            strengthFill.style.width = "66%";
+
+        } else {
+
+            strengthText.textContent =
+                "Password strength: Strong";
+
+            strengthFill.style.width = "100%";
+        }
+    });
+}
+
+
+// =========================
+// KNOWLEDGE ANCHOR
+// =========================
+
+console.log("Knowledge Anchor JS loaded");
+
+const saveKnowledgeAnchor =
+    document.getElementById("save-knowledge-anchor");
+
+console.log("Save button:", saveKnowledgeAnchor);
+
+if (saveKnowledgeAnchor) {
+
+    saveKnowledgeAnchor.addEventListener(
+        "click",
+        async function () {
+
+            console.log("SAVE KNOWLEDGE ANCHOR CLICKED");
+
+            const question =
+                document.getElementById(
+                    "knowledge-question"
+                ).value;
+
+            const answer =
+                document.getElementById(
+                    "knowledge-answer"
+                ).value;
+
+            const errorElement =
+                document.getElementById(
+                    "knowledge-anchor-error"
+                );
+
+            errorElement.hidden = true;
+            errorElement.textContent = "";
+
+            if (!question || !answer.trim()) {
+
+                errorElement.textContent =
+                    "Select a question and enter an answer.";
+
+                errorElement.hidden = false;
+
+                return;
+            }
+
+            try {
+
+                const response =
+                    await fetch(
+                        "/knowledge-anchor",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                question_id:
+                                    Number(question),
+
+                                answer:
+                                    answer
+                            })
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                console.log(
+                    "Knowledge Anchor response:",
+                    data
+                );
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        data.error ||
+                        "Unable to save knowledge anchor."
+                    );
+                }
+
+                document
+                    .getElementById(
+                        "knowledge-anchor-section"
+                    )
+                    .hidden = true;
+
+                const webauthnSection =
+                    document.getElementById(
+                        "webauthn-section"
+                    );
+
+                if (webauthnSection) {
+                    webauthnSection.hidden = false;
+                }
+
+            } catch (error) {
+
+                console.error(
+                    "Knowledge Anchor Error:",
+                    error
+                );
+
+                errorElement.textContent =
+                    error.message ||
+                    "Unable to save knowledge anchor.";
+
+                errorElement.hidden = false;
+            }
+        }
+    );
+}

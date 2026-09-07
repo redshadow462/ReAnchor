@@ -6,6 +6,7 @@ import qrcode
 import io
 import base64
 import string
+import re
 import secrets
 from dotenv import load_dotenv
 from argon2 import PasswordHasher
@@ -35,6 +36,42 @@ RP_NAME = "ReAnchor"
 ORIGIN = "http://localhost:5000"
 
 FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "Frontend"))
+KNOWLEDGE_QUESTIONS = {
+    1: "What was the first operating system you installed yourself?",
+    2: "Which superhero's power do you consider completely useless?",
+    3: "What specific pizza topping do you absolutely refuse to eat?",
+    4: "What was the first command-line tool you ever memorized?",
+    5: "What is the name of the first fictional weapon you wished you owned?",
+    6: "Which video game boss took you the most tries to defeat?",
+    7: "What specific beverage is your must-have for late-night studying?",
+    8: "What was your absolute least favorite subject in middle school?",
+    9: "Which anime or movie universe would you hate living in the most?",
+    10: "What was the first computer program you remember being fascinated by?",
+    11: "What is the one household chore you despise doing the most?",
+    12: "What specific PC hardware part would you always upgrade first?",
+    13: "What board game always caused arguments in your family?",
+    14: "What was your favorite playground game in primary school?",
+    15: "What was the first fictional world you remember imagining in detail?"
+}
+def validate_password(password):
+
+    if len(password) < 12:
+        return False, "Password must be at least 12 characters long."
+
+    if not re.search(r"[A-Z]", password):
+        return False, "Password must contain at least one uppercase letter."
+
+    if not re.search(r"[a-z]", password):
+        return False, "Password must contain at least one lowercase letter."
+
+    if not re.search(r"[0-9]", password):
+        return False, "Password must contain at least one number."
+
+    if not re.search(r"[^A-Za-z0-9]", password):
+        return False, "Password must contain at least one special character."
+
+    return True, ""
+
 
 def get_db_connection():
     return mysql.connector.connect(
@@ -43,7 +80,6 @@ def get_db_connection():
         password=os.environ.get("DB_PASSWORD"),
         database=os.environ.get("DB_NAME", "Reauth")
     )
-
 def bytes_to_base64url(data):
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
 
@@ -60,6 +96,11 @@ def store_recovery_codes(user_id, recovery_codes):
     conn.commit()
     cursor.close()
     conn.close()
+
+def normalize_knowledge_answer(answer):
+    return " ".join(
+        answer.strip().lower().split()
+    )
 
 @app.route("/")
 def home():
@@ -83,20 +124,45 @@ def register():
     email = request.form.get("email")
     password = request.form.get("password")
     password_confirmation = request.form.get("password_confirmation")
-    if not username or not email or not password: return jsonify({"error": "Missing required fields"}), 400
-    if password != password_confirmation: return jsonify({"error": "Passwords do not match"}), 400
+
+    if not username or not email or not password:
+        return jsonify({"error": "Missing required fields"}), 400
+
+    if password != password_confirmation:
+        return jsonify({"error": "Passwords do not match"}), 400
+
+    valid, password_error = validate_password(password)
+
+    if not valid:
+        return jsonify({"error": password_error}), 400
+
     try:
         password_hash = ph.hash(password)
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)", (username, email, password_hash))
+
+        cursor.execute(
+            "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)",
+            (username, email, password_hash)
+        )
+
         conn.commit()
+
         user_id = cursor.lastrowid
+
         cursor.close()
         conn.close()
-        return jsonify({"status": "ok", "message": "User registered successfully!", "user_id": user_id}), 200
+
+        return jsonify({
+            "status": "ok",
+            "message": "User registered successfully!",
+            "user_id": user_id
+        }), 200
+
     except mysql.connector.IntegrityError:
         return jsonify({"error": "Username or email already exists"}), 409
+
     except mysql.connector.Error as err:
         return jsonify({"error": str(err)}), 500
 
@@ -441,6 +507,76 @@ def recovery_login():
     return jsonify({
         "status": "ok",
         "message": "Recovery verification successful."
+    }), 200
+
+@app.route("/knowledge-anchor", methods=["POST"])
+def save_knowledge_anchor():
+
+    user_id = session.get("user_id")
+
+    if not user_id:
+        return jsonify({
+            "error": "Authentication required."
+        }), 401
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({
+            "error": "Invalid request."
+        }), 400
+
+    question_id = data.get("question_id")
+    answer = data.get("answer", "")
+
+    try:
+        question_id = int(question_id)
+    except (TypeError, ValueError):
+        return jsonify({
+            "error": "Invalid question."
+        }), 400
+
+    if question_id not in KNOWLEDGE_QUESTIONS:
+        return jsonify({
+            "error": "Invalid question."
+        }), 400
+
+    answer = normalize_knowledge_answer(answer)
+
+    if len(answer) < 3:
+        return jsonify({
+            "error": "Answer must contain at least 3 characters."
+        }), 400
+
+    answer_hash = ph.hash(answer)
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO knowledge_anchors
+        (user_id, question_id, answer_hash)
+        VALUES (%s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+            question_id = VALUES(question_id),
+            answer_hash = VALUES(answer_hash)
+        """,
+        (
+            user_id,
+            question_id,
+            answer_hash
+        )
+    )
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({
+        "status": "ok",
+        "message": "Knowledge anchor saved."
     }), 200
 
 if __name__ == "__main__":
