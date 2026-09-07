@@ -1037,7 +1037,9 @@ if (confirmRecoveryButton) {
 }
 
 // =========================
+
 // RECOVERY LOGIN
+
 // =========================
 
 const recoveryForm =
@@ -1059,22 +1061,92 @@ if (recoveryForm) {
                     .value
                     .trim();
 
-            if (code.length !== 16) {
-
-                alert(
-                    "Please enter a valid 16-character recovery code."
+            const errorElement =
+                document.getElementById(
+                    "recovery-error"
                 );
+
+            if (errorElement) {
+
+                errorElement.textContent = "";
+
+                errorElement.hidden = true;
+
+            }
+
+            if (!/^[A-Z0-9]{16}$/.test(code)) {
+
+                if (errorElement) {
+
+                    errorElement.textContent =
+                        "Please enter a valid 16-character recovery code.";
+
+                    errorElement.hidden = false;
+
+                }
 
                 return;
             }
 
-            // Recovery backend will be connected
-            // when password-reset flow is implemented.
-            alert(
-                "Recovery verification will be connected next."
+            const formData =
+                new FormData();
+
+            formData.append(
+                "recovery_code",
+                code
             );
+
+            try {
+
+                const response =
+                    await fetch(
+                        "/recovery",
+                        {
+                            method: "POST",
+                            body: formData
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok) {
+
+                    if (errorElement) {
+
+                        errorElement.textContent =
+                            data.error ||
+                            "Recovery verification failed.";
+
+                        errorElement.hidden = false;
+
+                    }
+
+                    return;
+                }
+
+                recoveryForm.reset();
+
+                showDashboard();
+
+            } catch (error) {
+
+                console.error(error);
+
+                if (errorElement) {
+
+                    errorElement.textContent =
+                        "Unable to connect to the ReAnchor server.";
+
+                    errorElement.hidden = false;
+
+                }
+
+            }
+
         }
     );
+
 }
 
 // =========================

@@ -68,10 +68,15 @@ body {
 }
 
 .logo-image {
-    width: 90px;
-    height: 90px;
-    object-fit: cover;
+
+    width: 250px;
+
+    height: auto;
+
+    object-fit: contain;
+
     border: 2px solid var(--ink);
+
     display: block;
 }
 

@@ -367,6 +367,84 @@ def webauthn_login_verify():
     session.pop("pending_user_id", None)
     session["user_id"] = user_id
     return jsonify({"status": "ok", "message": "Passkey login successful."}), 200
+# =========================
+# RECOVERY LOGIN
+# =========================
 
+@app.route("/recovery", methods=["POST"])
+def recovery_login():
+
+    recovery_code = request.form.get("recovery_code")
+
+    if not recovery_code:
+        return jsonify({
+            "error": "Recovery code is required."
+        }), 400
+
+    if len(recovery_code) != 16:
+        return jsonify({
+            "error": "Invalid recovery code."
+        }), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT id, user_id, code_hash
+        FROM recovery_codes
+        WHERE used = FALSE
+        """
+    )
+
+    recovery_rows = cursor.fetchall()
+
+    matched_id = None
+    matched_user_id = None
+
+    for row in recovery_rows:
+
+        recovery_id, user_id, code_hash = row
+
+        try:
+            if ph.verify(code_hash, recovery_code):
+                matched_id = recovery_id
+                matched_user_id = user_id
+                break
+
+        except VerifyMismatchError:
+            continue
+
+    if matched_id is None:
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "error": "Invalid or already used recovery code."
+        }), 401
+
+    cursor.execute(
+        """
+        UPDATE recovery_codes
+        SET used = TRUE
+        WHERE id = %s
+        """,
+        (matched_id,)
+    )
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    session["user_id"] = matched_user_id
+    session.pop("pending_user_id", None)
+
+    return jsonify({
+        "status": "ok",
+        "message": "Recovery verification successful."
+    }), 200
+    
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
