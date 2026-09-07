@@ -5,11 +5,16 @@ import string
 from argon2 import PasswordHasher
 
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 mycon = ms.connect(
-    host='localhost',
-    user='root',
-    password='Aswin@303',
-    database='Reauth' 
+    host=os.environ.get("DB_HOST"),
+    user=os.environ.get("DB_USER"),
+    password=os.environ.get("DB_PASSWORD"),
+    database=os.environ.get("DB_NAME")
 )
 
 mycur = mycon.cursor()

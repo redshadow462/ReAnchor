@@ -53,11 +53,9 @@ body {
 }
 
 .logo-image {
-    display: block;
-    width: 35rem;
+    width: 10rem;
     height: auto;
     max-width: 100%;
-    margin: 0 auto;
 }
 
 .subtitle {
@@ -252,5 +250,270 @@ button.link-btn:hover {
 
     .card h1 {
         font-size: 1.5rem;
+    }
+}
+
+/* =========================
+   AUTHENTICATOR SETUP
+========================= */
+
+.setup-card {
+    max-width: 38rem;
+    margin: 0 auto;
+}
+
+
+/* =========================
+   SETUP HEADING
+========================= */
+
+.setup-card h1 {
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+}
+
+.setup-card .card-description {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #5b667a;
+    line-height: 1.5;
+}
+
+
+/* =========================
+   SETUP STEPS
+========================= */
+
+.setup-step {
+    margin: 1.5rem 0;
+    padding: 1.25rem;
+
+    background: #f8faff;
+
+    border: 1px solid #e1e7f0;
+    border-radius: 0.75rem;
+}
+
+.setup-step h2 {
+    margin: 0 0 0.5rem;
+
+    color: #172033;
+
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.setup-step p {
+    margin: 0.4rem 0;
+
+    color: #68758a;
+
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.setup-step strong {
+    color: #172033;
+}
+
+
+/* =========================
+   QR CODE
+========================= */
+
+.qr-code {
+    display: block;
+
+    width: 10rem;
+    height: 10rem;
+
+    margin: 1.25rem auto;
+
+    padding: 0.5rem;
+
+    background: #ffffff;
+
+    border: 2px solid #e1e7f0;
+    border-radius: 0.75rem;
+
+    object-fit: contain;
+}
+
+
+/* =========================
+   QR CODE TEXT
+========================= */
+
+.scan-text {
+    text-align: center;
+
+    margin-top: 0.75rem !important;
+
+    color: #2457d6 !important;
+
+    font-weight: 600;
+}
+
+
+/* =========================
+   MANUAL SETUP
+========================= */
+
+.manual-setup {
+    margin-top: 1.5rem;
+
+    padding-top: 1rem;
+
+    border-top: 1px solid #e1e7f0;
+
+    text-align: center;
+}
+
+.manual-setup > p:first-child {
+    margin-bottom: 0.25rem;
+
+    color: #172033;
+
+    font-weight: 700;
+}
+
+.manual-description {
+    margin-bottom: 0.75rem !important;
+}
+
+
+/* =========================
+   SETUP KEY
+========================= */
+
+.setup-key {
+    display: block;
+
+    width: fit-content;
+    max-width: 100%;
+
+    margin: 0.75rem auto 0;
+
+    padding: 0.75rem 1rem;
+
+    background: #ffffff;
+
+    border: 1px solid #c8d1df;
+    border-radius: 0.5rem;
+
+    color: #2457d6;
+
+    font-family: monospace;
+    font-size: 0.95rem;
+    font-weight: 600;
+
+    letter-spacing: 0.08rem;
+
+    word-break: break-all;
+}
+
+
+/* =========================
+   6-DIGIT CODE
+========================= */
+
+#setup-code {
+    display: block;
+
+    width: 100%;
+    max-width: 18rem;
+
+    margin: 1rem auto 0;
+
+    padding: 0.85rem 1rem;
+
+    text-align: center;
+
+    border: 1px solid #c8d1df;
+    border-radius: 0.5rem;
+
+    background: #ffffff;
+
+    color: #172033;
+
+    font-size: 1.25rem;
+    font-weight: 600;
+
+    letter-spacing: 0.4rem;
+}
+
+#setup-code:focus {
+    outline: none;
+
+    border-color: #2457d6;
+
+    box-shadow:
+        0 0 0 3px rgb(36 87 214 / 12%);
+}
+
+
+/* =========================
+   ACTIVATE BUTTON
+========================= */
+
+#activate-totp {
+    display: block;
+
+    width: 100%;
+    max-width: 18rem;
+
+    margin: 1rem auto 0;
+}
+
+
+/* =========================
+   ERROR MESSAGE
+========================= */
+
+.setup-error {
+    margin-top: 0.75rem !important;
+
+    text-align: center;
+
+    color: #c0392b !important;
+
+    font-size: 0.85rem !important;
+    font-weight: 600;
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 480px) {
+
+    .setup-card {
+        padding: 1.25rem;
+    }
+
+    .setup-step {
+        padding: 1rem;
+    }
+
+    .setup-card h1 {
+        font-size: 1.5rem;
+    }
+
+    .qr-code {
+        width: 8rem;
+        height: 8rem;
+    }
+
+    .setup-key {
+        font-size: 0.8rem;
+        letter-spacing: 0.04rem;
+    }
+
+    #setup-code {
+        max-width: 16rem;
+        font-size: 1.1rem;
+        letter-spacing: 0.3rem;
     }
 }

@@ -2,6 +2,10 @@ from flask import Flask, request, jsonify, send_from_directory
 import mysql.connector
 import os
 from argon2 import PasswordHasher
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -15,12 +19,11 @@ FRONTEND_DIR = os.path.abspath(
 
 def get_db_connection():
     return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="Aswin@303",
-        database="Reauth"
+        host=os.environ.get("DB_HOST"),
+        user=os.environ.get("DB_USER"),
+        password=os.environ.get("DB_PASSWORD"),
+        database=os.environ.get("DB_NAME")
     )
-
 
 @app.route("/")
 def home():
@@ -34,6 +37,12 @@ def css(filename):
         filename
     )
 
+@app.route("/images/<path:filename>")
+def images(filename):
+    return send_from_directory(
+        os.path.join(FRONTEND_DIR, "images"),
+        filename
+    )
 
 @app.route("/js/<path:filename>")
 def js(filename):

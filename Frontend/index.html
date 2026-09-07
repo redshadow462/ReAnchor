@@ -278,11 +278,187 @@
                 </button>
 
             </section>
+            
 
         </main>
 
     </div>
+    <!-- =========================
+     AUTHENTICATOR SETUP SCREEN
+========================== -->
 
+<div class="screen" id="authenticator-screen">
+
+    <main class="container">
+
+        <a href="#" class="logo-link">
+            <img
+                src="images/Reanchor.jpg"
+                alt="ReAnchor"
+                class="logo-image"
+            >
+        </a>
+
+        <p class="subtitle">
+            Secure Multi-Factor Authentication
+        </p>
+
+        <section class="card setup-card" aria-labelledby="authenticator-heading">
+
+            <h1 id="authenticator-heading">
+                Set Up Authenticator
+            </h1>
+
+            <p class="card-description">
+                Protect your ReAnchor account with an authenticator app
+                such as Google Authenticator or Microsoft Authenticator.
+            </p>
+
+
+            <!-- =========================
+                 STEP 1
+            ========================== -->
+
+            <div class="setup-step">
+
+                <h2>
+                    1. Install an authenticator app
+                </h2>
+
+                <p>
+                    Install Google Authenticator, Microsoft Authenticator,
+                    Authy, or another compatible TOTP authenticator app.
+                </p>
+
+            </div>
+
+
+            <!-- =========================
+                 STEP 2
+            ========================== -->
+
+            <div class="setup-step">
+
+                <h2>
+                    2. Add your ReAnchor account
+                </h2>
+
+                <p>
+                    Open your authenticator app and select
+                    <strong>Add account</strong> or <strong>+</strong>.
+                    Then choose <strong>Scan a QR code</strong>.
+                </p>
+
+                <img
+                    id="totp-qr"
+                    class="qr-code"
+                    src=""
+                    alt="Authenticator setup QR code"
+                >
+
+                <p class="scan-text">
+                    Scan this QR code with your authenticator app.
+                </p>
+
+
+                <!-- =========================
+                     MANUAL SETUP KEY
+                ========================== -->
+
+                <div class="manual-setup">
+
+                    <p>
+                        Can't scan the QR code?
+                    </p>
+
+                    <p class="manual-description">
+                        Choose
+                        <strong>Enter setup key manually</strong>
+                        in your authenticator app and enter this key:
+                    </p>
+
+                    <code
+                        id="setup-key"
+                        class="setup-key"
+                    >
+                        Loading...
+                    </code>
+
+                </div>
+
+            </div>
+
+
+            <!-- =========================
+                 STEP 3
+            ========================== -->
+
+            <div class="setup-step">
+
+                <h2>
+                    3. Verify your setup
+                </h2>
+
+                <p>
+                    Your authenticator app will generate a
+                    <strong>6-digit verification code</strong>.
+                    Enter the current code below to activate
+                    two-factor authentication.
+                </p>
+
+                <div class="form-group">
+
+                    <label for="setup-code">
+                        Verification Code
+                    </label>
+
+                    <input
+                        id="setup-code"
+                        name="setup_code"
+                        type="text"
+                        inputmode="numeric"
+                        maxlength="6"
+                        pattern="[0-9]{6}"
+                        autocomplete="one-time-code"
+                        placeholder="Enter 6-digit code"
+                        required
+                    >
+
+                </div>
+
+                <button
+                    type="button"
+                    id="activate-totp"
+                >
+                    Activate Authenticator
+                </button>
+
+                <p
+                    id="totp-error"
+                    class="setup-error"
+                    hidden
+                ></p>
+
+            </div>
+
+
+            <!-- =========================
+                 BACK BUTTON
+            ========================== -->
+
+            <button
+                type="button"
+                class="secondary"
+                onclick="showLogin()"
+            >
+                Back to Login
+            </button>
+
+        </section>
+
+    </main>
+
+</div>
 
     <script src="js/script.js"></script>
 
