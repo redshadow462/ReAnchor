@@ -1,205 +1,94 @@
-<!DOCTYPE html>
-<html lang="en">
+* {
+    box-sizing: border-box;
+}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: #f4f7fb;
+    color: #172033;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
 
-    <link rel="stylesheet" href="css/style.css">
+.screen {
+    display: none;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+}
 
-    <title>ReAnchor — Secure Multi-Factor Identity Recovery</title>
-</head>
+.screen.active {
+    display: block;
+}
 
-<body>
+.container {
+    width: min(100%, 32rem);
+    margin: 0 auto;
+    text-align: center;
+}
 
-    <!-- Login Screen -->
-    <div class="screen active">
+.logo-image {
+    display: block;
+    width: 5rem;
+    height: 5rem;
+    margin: 0 auto 1rem;
+    object-fit: cover;
+    border-radius: 50%;
+}
 
-        <div class="container">
+.subtitle {
+    margin: 0 0 2rem;
+    color: #5b667a;
+}
 
-            <!-- Logo -->
-            <a href="index.html">
-                <img
-                    src="images/Reanchor.jpg"
-                    alt="ReAnchor"
-                    class="logo-image"
-                >
-            </a>
+.card {
+    padding: 2rem;
+    text-align: left;
+    background: #fff;
+    border: 1px solid #e1e7f0;
+    border-radius: 1rem;
+    box-shadow: 0 1rem 2rem rgb(23 32 51 / 8%);
+}
 
-            <p class="subtitle">
-                Secure Multi-Factor Identity Recovery
-            </p>
+.card h1 {
+    margin-top: 0;
+}
 
-            <section class="card" aria-labelledby="login">
+.card form > div {
+    margin: 1rem 0;
+}
 
-                <div class="icon">
-                    
-                </div>
+label {
+    display: block;
+    margin-bottom: .4rem;
+    font-weight: 600;
+}
 
-                <h1 id="login">Welcome back</h1>
+input,
+button {
+    width: 100%;
+    padding: .75rem 1rem;
+    font: inherit;
+    border-radius: .5rem;
+}
 
-                <p>
-                    Sign in to securely access your ReAnchor account.
-                </p>
+input {
+    border: 1px solid #c8d1df;
+}
 
-                <form action="/login" method="post">
+button {
+    margin-top: .75rem;
+    border: 0;
+    background: #2457d6;
+    color: #fff;
+    cursor: pointer;
+}
 
-                    <div>
-                        <label for="login-email">Email</label>
+button.secondary {
+    background: #e8eefb;
+    color: #2457d6;
+}
 
-                        <input
-                            id="login-email"
-                            name="email"
-                            type="email"
-                            autocomplete="email"
-                            placeholder="Enter your email"
-                            required
-                        >
-                    </div>
-
-                    <div>
-                        <label for="login-password">Password</label>
-
-                        <input
-                            id="login-password"
-                            name="password"
-                            type="password"
-                            autocomplete="current-password"
-                            placeholder="Enter your password"
-                            required
-                        >
-                    </div>
-
-                    <button type="submit">
-                        Log in
-                    </button>
-
-                </form>
-
-                <button type="button" class="secondary">
-                    Create an account
-                </button>
-
-                <button type="button" class="link-btn">
-                    Can't access your account?
-                </button>
-
-            </section>
-
-        </div>
-
-    </div>
-
-
-    <!-- Registration Screen -->
-    <div class="screen">
-
-        <div class="container">
-
-            <a href="index.html">
-                <img
-                    src="images/Reanchor.jpg"
-                    alt="ReAnchor"
-                    class="logo-image"
-                >
-            </a>
-
-            <p class="subtitle">
-                Create your secure identity
-            </p>
-
-            <section class="card" aria-labelledby="register-heading">
-
-                <div class="icon">
-                
-                </div>
-
-                <h1 id="register-heading">
-                    Create your account
-                </h1>
-
-                <p>
-                    Set up your identity with multiple independent security anchors.
-                </p>
-
-                <form action="/register" method="post">
-
-                    <div>
-                        <label for="register-username">
-                            Username
-                        </label>
-
-                        <input
-                            id="register-username"
-                            name="username"
-                            type="text"
-                            autocomplete="username"
-                            placeholder="Choose a username"
-                            required
-                        >
-                    </div>
-
-                    <div>
-                        <label for="register-email">
-                            Email
-                        </label>
-
-                        <input
-                            id="register-email"
-                            name="email"
-                            type="email"
-                            autocomplete="email"
-                            placeholder="Enter your email"
-                            required
-                        >
-                    </div>
-
-                    <div>
-                        <label for="register-password">
-                            Password
-                        </label>
-
-                        <input
-                            id="register-password"
-                            name="password"
-                            type="password"
-                            autocomplete="new-password"
-                            placeholder="Create a password"
-                            required
-                        >
-                    </div>
-
-                    <div>
-                        <label for="register-password-confirmation">
-                            Confirm password
-                        </label>
-
-                        <input
-                            id="register-password-confirmation"
-                            name="password_confirmation"
-                            type="password"
-                            autocomplete="new-password"
-                            placeholder="Confirm your password"
-                            required
-                        >
-                    </div>
-
-                    <button type="submit">
-                        Create Account
-                    </button>
-
-                </form>
-
-                <button type="button" class="secondary">
-                    Back to Login
-                </button>
-
-            </section>
-
-        </div>
-
-    </div>
-
-</body>
-
-</html>
+button.link-btn {
+    background: transparent;
+    color: #2457d6;
+}

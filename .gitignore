@@ -1,19 +1,7 @@
-# Python
+.env
+.env.*
 __pycache__/
 *.pyc
 .venv/
 venv/
-
-# Environment variables / secrets
-.env
-.env.*
-
-# IDE
 .vscode/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Python tooling
-.pytest_cache/
