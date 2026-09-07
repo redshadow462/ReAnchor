@@ -44,33 +44,22 @@ function showRecoveryCodes() {
         .classList.add("active");
 }
 
-function showRecoveryCodes() {
-    hideAllScreens();
-
-    document
-        .getElementById("recovery-codes-screen")
-        .classList.add("active");
-}
-
 
 // =========================
 // WEBAUTHN HELPERS
 // =========================
 
 function base64urlToBuffer(base64url) {
-
     const padding =
         "=".repeat((4 - (base64url.length % 4)) % 4);
 
-    const base64 =
-        (base64url + padding)
-            .replace(/-/g, "+")
-            .replace(/_/g, "/");
+    const base64 = (base64url + padding)
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
 
     const binary = atob(base64);
 
-    const buffer =
-        new Uint8Array(binary.length);
+    const buffer = new Uint8Array(binary.length);
 
     for (let i = 0; i < binary.length; i++) {
         buffer[i] = binary.charCodeAt(i);
@@ -81,9 +70,7 @@ function base64urlToBuffer(base64url) {
 
 
 function bufferToBase64url(buffer) {
-
-    const bytes =
-        new Uint8Array(buffer);
+    const bytes = new Uint8Array(buffer);
 
     let binary = "";
 
@@ -99,210 +86,138 @@ function bufferToBase64url(buffer) {
 
 
 function credentialToJSON(credential) {
-
-    const response =
-        credential.response;
+    const response = credential.response;
 
     const result = {
         id: credential.id,
-        rawId: bufferToBase64url(
-            credential.rawId
-        ),
+        rawId: bufferToBase64url(credential.rawId),
         type: credential.type
     };
-async function loginWithPasskey() {
 
-    const emailInput =
-        document.getElementById("login-email");
-
-    const errorElement =
-        document.getElementById(
-            "webauthn-login-error"
-        );
-
-    const email = emailInput.value.trim();
-
-    if (errorElement) {
-        errorElement.textContent = "";
-        errorElement.hidden = true;
-    }
-
-    if (!email) {
-
-        if (errorElement) {
-            errorElement.textContent =
-                "Enter your email first.";
-            errorElement.hidden = false;
-        }
-
-        emailInput.focus();
-        return;
-    }
-
-    if (!window.PublicKeyCredential) {
-
-        if (errorElement) {
-            errorElement.textContent =
-                "Passkeys are not supported by this browser.";
-            errorElement.hidden = false;
-        }
-
-        return;
-    }
-
-    try {
-
-        const optionsResponse =
-            await fetch(
-                "/webauthn/login/options",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-                    body: JSON.stringify({
-                        email: email
-                    })
-                }
-            );
-
-        const options =
-            await optionsResponse.json();
-
-        if (!optionsResponse.ok) {
-            throw new Error(
-                options.error ||
-                "Unable to start passkey login."
-            );
-        }
-
-        options.challenge =
-            base64urlToBuffer(
-                options.challenge
-            );
-
-        if (options.allowCredentials) {
-
-            options.allowCredentials =
-                options.allowCredentials.map(
-                    function (credential) {
-
-                        return {
-                            ...credential,
-
-                            id:
-                                base64urlToBuffer(
-                                    credential.id
-                                )
-                        };
-                    }
-                );
-        }
-
-        const credential =
-            await navigator.credentials.get({
-                publicKey: options
-            });
-
-        if (!credential) {
-
-            throw new Error(
-                "Passkey login was cancelled."
-            );
-        }
-
-        const verifyResponse =
-            await fetch(
-                "/webauthn/login/verify",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-                    body: JSON.stringify(
-                        credentialToJSON(
-                            credential
-                        )
-                    )
-                }
-            );
-
-        const result =
-            await verifyResponse.json();
-
-        if (!verifyResponse.ok) {
-
-            throw new Error(
-                result.error ||
-                "Passkey verification failed."
-            );
-        }
-
-        showLogin();
-
-        alert(
-            "Passkey login successful."
-        );
-
-    } catch (error) {
-
-        console.error(error);
-
-        if (errorElement) {
-
-            errorElement.textContent =
-                error.message ||
-                "Passkey login failed.";
-
-            errorElement.hidden = false;
-        }
-    }
-}
     if (response.attestationObject) {
-
         result.response = {
             clientDataJSON:
-                bufferToBase64url(
-                    response.clientDataJSON
-                ),
+                bufferToBase64url(response.clientDataJSON),
 
             attestationObject:
-                bufferToBase64url(
-                    response.attestationObject
-                )
+                bufferToBase64url(response.attestationObject)
         };
-
     } else {
-
         result.response = {
             clientDataJSON:
-                bufferToBase64url(
-                    response.clientDataJSON
-                ),
+                bufferToBase64url(response.clientDataJSON),
 
             authenticatorData:
-                bufferToBase64url(
-                    response.authenticatorData
-                ),
+                bufferToBase64url(response.authenticatorData),
 
             signature:
-                bufferToBase64url(
-                    response.signature
-                ),
+                bufferToBase64url(response.signature),
 
-            userHandle:
-                response.userHandle
-                    ? bufferToBase64url(
-                        response.userHandle
-                    )
-                    : null
+            userHandle: response.userHandle
+                ? bufferToBase64url(response.userHandle)
+                : null
         };
     }
 
     return result;
 }
+
+// =========================
+// PASSKEY LOGIN
+// =========================
+
+async function loginWithPasskey() {
+    const email = document.getElementById("login-email").value.trim();
+    const error = document.getElementById("webauthn-login-error");
+
+    error.hidden = true;
+    error.textContent = "";
+
+    if (!email) {
+        error.textContent = "Please enter your email first.";
+        error.hidden = false;
+        return;
+    }
+
+    try {
+        // Get WebAuthn authentication options
+        const optionsResponse = await fetch("/webauthn/login/options", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                email: email
+            })
+        });
+
+        const optionsData = await optionsResponse.json();
+
+        if (!optionsResponse.ok) {
+            throw new Error(
+                optionsData.error || "Unable to start passkey login."
+            );
+        }
+
+        // Convert WebAuthn challenge
+        optionsData.challenge = base64urlToBuffer(
+            optionsData.challenge
+        );
+
+        // Convert allowed credential IDs
+        if (optionsData.allowCredentials) {
+            optionsData.allowCredentials =
+                optionsData.allowCredentials.map(credential => ({
+                    ...credential,
+                    id: base64urlToBuffer(credential.id)
+                }));
+        }
+
+        // Ask browser/device for the passkey
+        const credential = await navigator.credentials.get({
+            publicKey: optionsData
+        });
+
+        if (!credential) {
+            throw new Error("Passkey authentication was cancelled.");
+        }
+
+        // Send credential to Flask
+        const verifyResponse = await fetch(
+            "/webauthn/login/verify",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(
+                    credentialToJSON(credential)
+                )
+            }
+        );
+
+        const verifyData = await verifyResponse.json();
+
+        if (!verifyResponse.ok) {
+            throw new Error(
+                verifyData.error || "Passkey authentication failed."
+            );
+        }
+
+        alert("Passkey login successful!");
+
+        showLogin();
+
+    } catch (errorMessage) {
+        console.error("Passkey login error:", errorMessage);
+
+        error.textContent = errorMessage.message ||
+            "Passkey login failed.";
+
+        error.hidden = false;
+    }
+}
+
 
 
 // =========================
