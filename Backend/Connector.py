@@ -8,7 +8,7 @@ from argon2 import PasswordHasher
 mycon = ms.connect(
     host='localhost',
     user='root',
-    password='saisabs',
+    password='Aswin@303',
     database='Reauth'
 )
 
