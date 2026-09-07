@@ -1,13 +1,16 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, session
 import mysql.connector
 import os
 from argon2 import PasswordHasher
 import os
 from dotenv import load_dotenv
+import secrets
+import string
 
 load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY")
 
 ph = PasswordHasher()
 
@@ -24,6 +27,36 @@ def get_db_connection():
         password=os.environ.get("DB_PASSWORD"),
         database=os.environ.get("DB_NAME")
     )
+def generate_recovery_code():
+    alphabet = string.ascii_uppercase + string.digits
+
+    return "".join(
+        secrets.choice(alphabet)
+        for _ in range(16)
+    )
+
+def store_recovery_codes(user_id, recovery_codes):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    for code in recovery_codes:
+
+        code_hash = ph.hash(code)
+
+        cursor.execute(
+            """
+            INSERT INTO recovery_codes
+                (user_id, code_hash, used)
+            VALUES
+                (%s, %s, FALSE)
+            """,
+            (user_id, code_hash)
+        )
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
 
 @app.route("/")
 def home():
@@ -51,6 +84,72 @@ def js(filename):
         filename
     )
 
+from flask import Flask, request, jsonify, send_from_directory, session
+import mysql.connector
+import os
+import pyotp
+import qrcode
+import io
+import base64
+
+from dotenv import load_dotenv
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
+
+
+load_dotenv()
+
+app = Flask(__name__)
+
+app.secret_key = os.environ.get("FLASK_SECRET_KEY")
+
+ph = PasswordHasher()
+
+FRONTEND_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "Frontend")
+)
+
+
+
+def get_db_connection():
+    return mysql.connector.connect(
+        host=os.environ.get("DB_HOST", "localhost"),
+        user=os.environ.get("DB_USER", "root"),
+        password=os.environ.get("DB_PASSWORD"),
+        database=os.environ.get("DB_NAME", "Reauth")
+    )
+
+@app.route("/")
+def home():
+    return send_from_directory(
+        FRONTEND_DIR,
+        "index.html"
+    )
+
+
+@app.route("/css/<path:filename>")
+def css(filename):
+    return send_from_directory(
+        os.path.join(FRONTEND_DIR, "css"),
+        filename
+    )
+
+
+@app.route("/js/<path:filename>")
+def js(filename):
+    return send_from_directory(
+        os.path.join(FRONTEND_DIR, "js"),
+        filename
+    )
+
+
+@app.route("/images/<path:filename>")
+def images(filename):
+    return send_from_directory(
+        os.path.join(FRONTEND_DIR, "images"),
+        filename
+    )
+
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -58,11 +157,20 @@ def register():
     username = request.form.get("username")
     email = request.form.get("email")
     password = request.form.get("password")
+    password_confirmation = request.form.get("password_confirmation")
 
     if not username or not email or not password:
-        return jsonify({"error": "Missing fields"}), 400
+        return jsonify({
+            "error": "Missing required fields"
+        }), 400
+
+    if password != password_confirmation:
+        return jsonify({
+            "error": "Passwords do not match"
+        }), 400
 
     try:
+        # Hash password using Argon2id
         password_hash = ph.hash(password)
 
         conn = get_db_connection()
@@ -70,8 +178,10 @@ def register():
 
         cursor.execute(
             """
-            INSERT INTO users (username, email, password_hash)
-            VALUES (%s, %s, %s)
+            INSERT INTO users
+                (username, email, password_hash)
+            VALUES
+                (%s, %s, %s)
             """,
             (username, email, password_hash)
         )
@@ -84,6 +194,7 @@ def register():
         conn.close()
 
         return jsonify({
+            "status": "ok",
             "message": "User registered successfully!",
             "user_id": user_id
         }), 200
@@ -99,5 +210,345 @@ def register():
         }), 500
 
 
+@app.route("/login", methods=["POST"])
+def login():
+
+    # Frontend sends EMAIL
+    email = request.form.get("email")
+    password = request.form.get("password")
+
+    if not email or not password:
+        return jsonify({
+            "error": "Missing email or password"
+        }), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT user_id, password_hash
+        FROM users
+        WHERE email = %s
+        """,
+        (email,)
+    )
+
+    result = cursor.fetchone()
+
+    if not result:
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "error": "Invalid email or password"
+        }), 401
+
+    user_id, password_hash = result
+
+    # Verify Argon2 password hash
+    try:
+        ph.verify(password_hash, password)
+
+    except VerifyMismatchError:
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "error": "Invalid email or password"
+        }), 401
+
+    # Check whether TOTP is enabled
+    cursor.execute(
+        """
+        SELECT enabled
+        FROM totp_credentials
+        WHERE user_id = %s
+        """,
+        (user_id,)
+    )
+
+    totp_row = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    if totp_row and totp_row[0]:
+
+        # Password correct, but 2FA still required
+        session["pending_user_id"] = user_id
+
+        return jsonify({
+            "status": "2fa_required"
+        }), 200
+
+    # No TOTP enabled → complete login
+    session["user_id"] = user_id
+
+    return jsonify({
+        "status": "ok",
+        "message": "Logged in successfully"
+    }), 200
+
+@app.route("/2fa/setup", methods=["POST"])
+def totp_setup():
+
+    if "user_id" not in session:
+        return jsonify({
+            "error": "Not authenticated"
+        }), 401
+
+    user_id = session["user_id"]
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Get user's email
+    cursor.execute(
+        """
+        SELECT email
+        FROM users
+        WHERE user_id = %s
+        """,
+        (user_id,)
+    )
+
+    user = cursor.fetchone()
+
+    if not user:
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "error": "User not found"
+        }), 404
+
+    email = user[0]
+
+    # Generate new TOTP secret
+    totp_secret = pyotp.random_base32()
+
+    # Store secret but keep TOTP disabled
+    cursor.execute(
+        """
+        INSERT INTO totp_credentials
+            (user_id, secret, enabled)
+        VALUES
+            (%s, %s, FALSE)
+        ON DUPLICATE KEY UPDATE
+            secret = %s,
+            enabled = FALSE
+        """,
+        (
+            user_id,
+            totp_secret,
+            totp_secret
+        )
+    )
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    # Create TOTP object
+    totp = pyotp.TOTP(totp_secret)
+
+    # Create authenticator provisioning URI
+    provisioning_uri = totp.provisioning_uri(
+        name=email,
+        issuer_name="ReAnchor"
+    )
+
+    # Generate QR code
+    qr = qrcode.make(provisioning_uri)
+
+    buffer = io.BytesIO()
+
+    qr.save(
+        buffer,
+        format="PNG"
+    )
+
+    qr_code = base64.b64encode(
+        buffer.getvalue()
+    ).decode("utf-8")
+
+    # Format setup key into groups of 4
+    display_key = " ".join(
+        totp_secret[i:i + 4]
+        for i in range(0, len(totp_secret), 4)
+    )
+
+    return jsonify({
+        "qr_code": f"data:image/png;base64,{qr_code}",
+        "setup_key": display_key
+    })
+
+@app.route("/2fa/verify", methods=["POST"])
+def totp_verify():
+
+    if "user_id" not in session:
+        return jsonify({
+            "error": "Not authenticated"
+        }), 401
+
+    user_id = session["user_id"]
+
+    user_otp = request.form.get("otp")
+
+    if not user_otp:
+        return jsonify({
+            "error": "Verification code is required"
+        }), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT secret
+        FROM totp_credentials
+        WHERE user_id = %s
+        """,
+        (user_id,)
+    )
+
+    result = cursor.fetchone()
+
+    if not result:
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "error": "No TOTP setup found"
+        }), 400
+
+    totp_secret = result[0]
+
+    totp = pyotp.TOTP(totp_secret)
+
+    # Verify 6-digit authenticator code
+    if totp.verify(user_otp, valid_window=1):
+
+        cursor.execute(
+            """
+            UPDATE totp_credentials
+            SET enabled = TRUE
+            WHERE user_id = %s
+            """,
+            (user_id,)
+        )
+
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
+        # Generate 5 recovery codes
+        recovery_codes = [
+            generate_recovery_code()
+            for _ in range(5)
+        ]
+
+        # Store ONLY the Argon2 hashes
+        store_recovery_codes(
+            user_id,
+            recovery_codes
+        )
+
+        return jsonify({
+            "status": "enabled",
+            "message": "Authenticator enabled successfully",
+            "recovery_codes": recovery_codes
+        }), 200
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({
+        "error": (
+            "Invalid verification code. "
+            "Please check your authenticator app and try again."
+        )
+    }), 401
+
+@app.route("/2fa/challenge", methods=["POST"])
+def totp_challenge():
+
+    if "pending_user_id" not in session:
+        return jsonify({
+            "error": "No pending login"
+        }), 400
+
+    user_id = session["pending_user_id"]
+
+    user_otp = request.form.get("otp")
+
+    if not user_otp:
+        return jsonify({
+            "error": "Verification code is required"
+        }), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT secret
+        FROM totp_credentials
+        WHERE user_id = %s
+          AND enabled = TRUE
+        """,
+        (user_id,)
+    )
+
+    result = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    if not result:
+        return jsonify({
+            "error": "2FA is not enabled"
+        }), 400
+
+    totp_secret = result[0]
+
+    totp = pyotp.TOTP(totp_secret)
+
+    if totp.verify(user_otp, valid_window=1):
+
+        # Complete login
+        session["user_id"] = user_id
+
+        # Remove temporary login state
+        session.pop("pending_user_id", None)
+
+        return jsonify({
+            "status": "ok",
+            "message": "2FA verified. Login successful."
+        }), 200
+
+    return jsonify({
+        "error": "Invalid verification code"
+    }), 401
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+
+    session.clear()
+
+    return jsonify({
+        "status": "ok",
+        "message": "Logged out successfully"
+    }), 200
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(
+        host="127.0.0.1",
+        port=5000,
+        debug=True
+    )

@@ -12,9 +12,6 @@
 
 <body>
 
-    <!-- =========================
-         LOGIN SCREEN
-    ========================== -->
 
     <div class="screen active" id="login-screen">
 
@@ -105,9 +102,6 @@
     </div>
 
 
-    <!-- =========================
-         REGISTER SCREEN
-    ========================== -->
 
     <div class="screen" id="register-screen">
 
@@ -216,9 +210,6 @@
     </div>
 
 
-    <!-- =========================
-         RECOVERY SCREEN
-    ========================== -->
 
     <div class="screen" id="recovery-screen">
 
@@ -283,9 +274,6 @@
         </main>
 
     </div>
-    <!-- =========================
-     AUTHENTICATOR SETUP SCREEN
-========================== -->
 
 <div class="screen" id="authenticator-screen">
 
@@ -315,9 +303,6 @@
             </p>
 
 
-            <!-- =========================
-                 STEP 1
-            ========================== -->
 
             <div class="setup-step">
 
@@ -332,10 +317,6 @@
 
             </div>
 
-
-            <!-- =========================
-                 STEP 2
-            ========================== -->
 
             <div class="setup-step">
 
@@ -361,10 +342,6 @@
                 </p>
 
 
-                <!-- =========================
-                     MANUAL SETUP KEY
-                ========================== -->
-
                 <div class="manual-setup">
 
                     <p>
@@ -388,10 +365,6 @@
 
             </div>
 
-
-            <!-- =========================
-                 STEP 3
-            ========================== -->
 
             <div class="setup-step">
 
@@ -442,10 +415,6 @@
             </div>
 
 
-            <!-- =========================
-                 BACK BUTTON
-            ========================== -->
-
             <button
                 type="button"
                 class="secondary"
@@ -459,6 +428,116 @@
     </main>
 
 </div>
+
+<section id="two-factor-screen" class="screen">
+
+    <div class="form-container">
+
+        <h1>Two-Factor Authentication</h1>
+
+        <p>
+            Enter the 6-digit verification code
+            from your authenticator app.
+        </p>
+
+        <form id="two-factor-form">
+
+            <label for="two-factor-code">
+                Authentication Code
+            </label>
+
+            <input
+                id="two-factor-code"
+                name="otp"
+                type="text"
+                inputmode="numeric"
+                maxlength="6"
+                autocomplete="one-time-code"
+                placeholder="Enter 6-digit code"
+                required
+            >
+
+            <p
+                id="two-factor-error"
+                class="setup-error"
+                hidden>
+            </p>
+
+            <button type="submit">
+                Verify & Continue
+            </button>
+
+        </form>
+
+        <button
+            type="button"
+            onclick="showLogin()">
+            Back to Login
+        </button>
+
+    </div>
+
+</section>
+
+<section id="recovery-codes-screen" class="screen">
+
+    <div class="form-container">
+
+        <h1>Your Recovery Codes</h1>
+
+        <p>
+            Save these codes somewhere secure.
+            They can be used to recover your account
+            if you lose access to your authenticator.
+        </p>
+
+        <div id="recovery-codes-list">
+        </div>
+
+        <button
+            type="button"
+            id="download-recovery-codes">
+            Download Recovery Codes
+        </button>
+
+        <label>
+            <input
+                type="checkbox"
+                id="recovery-saved">
+            I have securely saved my recovery codes.
+        </label>
+
+        <div id="recovery-confirmation">
+            
+            <label for="recovery-confirm-code">
+                Enter one recovery code to confirm:
+            </label>
+
+            <input
+                id="recovery-confirm-code"
+                type="text"
+                maxlength="16"
+                autocomplete="off"
+                placeholder="Enter recovery code"
+            >
+
+            <p
+                id="recovery-confirm-error"
+                class="setup-error"
+                hidden>
+            </p>
+
+            <button
+                type="button"
+                id="confirm-recovery-code">
+                Confirm & Continue
+            </button>
+
+        </div>
+
+    </div>
+
+</section>
 
     <script src="js/script.js"></script>
 

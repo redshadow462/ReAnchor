@@ -253,19 +253,12 @@ button.link-btn:hover {
     }
 }
 
-/* =========================
-   AUTHENTICATOR SETUP
-========================= */
 
 .setup-card {
     max-width: 38rem;
     margin: 0 auto;
 }
 
-
-/* =========================
-   SETUP HEADING
-========================= */
 
 .setup-card h1 {
     text-align: center;
@@ -281,9 +274,6 @@ button.link-btn:hover {
 }
 
 
-/* =========================
-   SETUP STEPS
-========================= */
 
 .setup-step {
     margin: 1.5rem 0;
@@ -317,11 +307,6 @@ button.link-btn:hover {
     color: #172033;
 }
 
-
-/* =========================
-   QR CODE
-========================= */
-
 .qr-code {
     display: block;
 
@@ -341,10 +326,6 @@ button.link-btn:hover {
 }
 
 
-/* =========================
-   QR CODE TEXT
-========================= */
-
 .scan-text {
     text-align: center;
 
@@ -355,10 +336,6 @@ button.link-btn:hover {
     font-weight: 600;
 }
 
-
-/* =========================
-   MANUAL SETUP
-========================= */
 
 .manual-setup {
     margin-top: 1.5rem;
@@ -381,11 +358,6 @@ button.link-btn:hover {
 .manual-description {
     margin-bottom: 0.75rem !important;
 }
-
-
-/* =========================
-   SETUP KEY
-========================= */
 
 .setup-key {
     display: block;
@@ -412,11 +384,6 @@ button.link-btn:hover {
 
     word-break: break-all;
 }
-
-
-/* =========================
-   6-DIGIT CODE
-========================= */
 
 #setup-code {
     display: block;
@@ -453,10 +420,6 @@ button.link-btn:hover {
 }
 
 
-/* =========================
-   ACTIVATE BUTTON
-========================= */
-
 #activate-totp {
     display: block;
 
@@ -467,9 +430,6 @@ button.link-btn:hover {
 }
 
 
-/* =========================
-   ERROR MESSAGE
-========================= */
 
 .setup-error {
     margin-top: 0.75rem !important;
@@ -483,9 +443,6 @@ button.link-btn:hover {
 }
 
 
-/* =========================
-   MOBILE
-========================= */
 
 @media (max-width: 480px) {
 
