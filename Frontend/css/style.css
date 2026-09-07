@@ -54,45 +54,19 @@ body {
 
 .logo-image {
     display: block;
-
     width: 35rem;
-    height: 35rem;
-
-    margin: 0 auto 1rem;
-
-    object-fit: contain;
-
-    border-radius: 0;
+    height: auto;
+    max-width: 100%;
+    margin: 0 auto;
 }
-
-
 
 .subtitle {
-    margin: 0 0 2rem;
-
+    margin: 0 0 0.75rem;
     color: #5b667a;
-
-    font-size: 0.95rem;
 }
 
-
-/* =========================
-   CARD
-========================= */
-
 .card {
-    padding: 2rem;
-
-    text-align: left;
-
-    background: #ffffff;
-
-    border: 1px solid #e1e7f0;
-
-    border-radius: 1rem;
-
-    box-shadow:
-        0 1rem 2rem rgb(23 32 51 / 8%);
+    margin: 0;
 }
 
 .card h1 {
@@ -113,10 +87,6 @@ body {
     line-height: 1.5;
 }
 
-
-/* =========================
-   FORM
-========================= */
 
 .card form {
     margin: 0;
@@ -139,9 +109,6 @@ label {
 }
 
 
-/* =========================
-   INPUTS
-========================= */
 
 input,
 button {
@@ -179,10 +146,6 @@ input:focus {
         0 0 0 3px rgb(36 87 214 / 12%);
 }
 
-
-/* =========================
-   BUTTONS
-========================= */
 
 button {
     margin-top: 0.75rem;
@@ -243,9 +206,6 @@ button.link-btn:hover {
 }
 
 
-/* =========================
-   DIVIDER
-========================= */
 
 .divider {
     display: flex;
@@ -274,10 +234,6 @@ button.link-btn:hover {
     background: #e1e7f0;
 }
 
-
-/* =========================
-   RESPONSIVE
-========================= */
 
 @media (max-width: 480px) {
 
