@@ -110,7 +110,156 @@ function credentialToJSON(credential) {
         ),
         type: credential.type
     };
+async function loginWithPasskey() {
 
+    const emailInput =
+        document.getElementById("login-email");
+
+    const errorElement =
+        document.getElementById(
+            "webauthn-login-error"
+        );
+
+    const email = emailInput.value.trim();
+
+    if (errorElement) {
+        errorElement.textContent = "";
+        errorElement.hidden = true;
+    }
+
+    if (!email) {
+
+        if (errorElement) {
+            errorElement.textContent =
+                "Enter your email first.";
+            errorElement.hidden = false;
+        }
+
+        emailInput.focus();
+        return;
+    }
+
+    if (!window.PublicKeyCredential) {
+
+        if (errorElement) {
+            errorElement.textContent =
+                "Passkeys are not supported by this browser.";
+            errorElement.hidden = false;
+        }
+
+        return;
+    }
+
+    try {
+
+        const optionsResponse =
+            await fetch(
+                "/webauthn/login/options",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body: JSON.stringify({
+                        email: email
+                    })
+                }
+            );
+
+        const options =
+            await optionsResponse.json();
+
+        if (!optionsResponse.ok) {
+            throw new Error(
+                options.error ||
+                "Unable to start passkey login."
+            );
+        }
+
+        options.challenge =
+            base64urlToBuffer(
+                options.challenge
+            );
+
+        if (options.allowCredentials) {
+
+            options.allowCredentials =
+                options.allowCredentials.map(
+                    function (credential) {
+
+                        return {
+                            ...credential,
+
+                            id:
+                                base64urlToBuffer(
+                                    credential.id
+                                )
+                        };
+                    }
+                );
+        }
+
+        const credential =
+            await navigator.credentials.get({
+                publicKey: options
+            });
+
+        if (!credential) {
+
+            throw new Error(
+                "Passkey login was cancelled."
+            );
+        }
+
+        const verifyResponse =
+            await fetch(
+                "/webauthn/login/verify",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body: JSON.stringify(
+                        credentialToJSON(
+                            credential
+                        )
+                    )
+                }
+            );
+
+        const result =
+            await verifyResponse.json();
+
+        if (!verifyResponse.ok) {
+
+            throw new Error(
+                result.error ||
+                "Passkey verification failed."
+            );
+        }
+
+        showLogin();
+
+        alert(
+            "Passkey login successful."
+        );
+
+    } catch (error) {
+
+        console.error(error);
+
+        if (errorElement) {
+
+            errorElement.textContent =
+                error.message ||
+                "Passkey login failed.";
+
+            errorElement.hidden = false;
+        }
+    }
+}
     if (response.attestationObject) {
 
         result.response = {
@@ -491,8 +640,10 @@ async function registerFingerprint() {
         }
 
         alert(
-            "Passkey registered successfully."
+                "Passkey registered successfully."
         );
+
+        showLogin();
 
     } catch (error) {
 
@@ -884,13 +1035,24 @@ if (confirmRecoveryButton) {
 
                 if (data.status === "confirmed") {
 
-                    alert(
-                        "Recovery codes saved successfully."
-                    );
+                    const webauthnSection =
+                        document.getElementById(
+                            "webauthn-section"
+                        );
 
-                    showLogin();
+                    if (webauthnSection) {
+                        webauthnSection.hidden = false;
+                    }
+
+                    const confirmButton =
+                        document.getElementById(
+                            "confirm-recovery-code"
+                        );
+
+                    if (confirmButton) {
+                        confirmButton.disabled = true;
+                    }
                 }
-
             } catch (error) {
 
                 console.error(error);
@@ -962,5 +1124,17 @@ if (registerPasskeyButton) {
     registerPasskeyButton.addEventListener(
         "click",
         registerFingerprint
+    );
+}
+const passkeyLoginButton =
+    document.getElementById(
+        "passkey-login"
+    );
+
+if (passkeyLoginButton) {
+
+    passkeyLoginButton.addEventListener(
+        "click",
+        loginWithPasskey
     );
 }

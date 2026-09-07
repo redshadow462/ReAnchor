@@ -72,7 +72,18 @@
                     <button type="submit">
                         Log in
                     </button>
+                    <button
+                        type="button"
+                        class="secondary"
+                        id="passkey-login">
+                        Login with Passkey
+                    </button>
 
+                    <p
+                        id="webauthn-login-error"
+                        class="setup-error"
+                        hidden>
+                    </p>
                 </form>
 
                 <div class="divider">
@@ -405,20 +416,7 @@
                 >
                     Activate Authenticator
                 </button>
-                <div class="webauthn-section">
-                    <h2>Secure Your Account</h2>
-
-                    <p>
-                        Register a passkey using your device's biometric authentication
-                        or device PIN.
-                    </p>
-
-                    <button type="button" id="register-passkey">
-                        Register Passkey
-                    </button>
-
-                    <p id="webauthn-register-error" class="setup-error" hidden></p>
-                </div>
+                
                 <p
                     id="totp-error"
                     class="setup-error"
@@ -545,6 +543,29 @@
                 id="confirm-recovery-code">
                 Confirm & Continue
             </button>
+            <div id="webauthn-section" hidden>
+
+            <h2>Secure Your Account</h2>
+
+            <p>
+                 Add a passkey using your device's biometric authentication
+                 or device PIN. This gives you another secure way to access
+                your ReAnchor account.
+            </p>
+            
+            <button
+                type="button"
+                id="register-passkey">
+                Register Passkey
+            </button>
+
+            <p
+                id="webauthn-register-error"
+                class="setup-error"
+                hidden>
+            </p>
+
+            </div>
 
         </div>
 
