@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <title>ReAnchor — Secure Multi-Factor Identity Recovery</title>
+</head>
+
+<body>
+
+    <!-- Login Screen -->
+    <div class="screen active">
+
+        <div class="container">
+
+            <!-- Logo -->
+            <a href="index.html">
+                <img
+                    src="images/Reanchor.jpg"
+                    alt="ReAnchor"
+                    class="logo-image"
+                >
+            </a>
+
+            <p class="subtitle">
+                Secure Multi-Factor Identity Recovery
+            </p>
+
+            <section class="card" aria-labelledby="login">
+
+                <div class="icon">
+                    
+                </div>
+
+                <h1 id="login">Welcome back</h1>
+
+                <p>
+                    Sign in to securely access your ReAnchor account.
+                </p>
+
+                <form action="/login" method="post">
+
+                    <div>
+                        <label for="login-email">Email</label>
+
+                        <input
+                            id="login-email"
+                            name="email"
+                            type="email"
+                            autocomplete="email"
+                            placeholder="Enter your email"
+                            required
+                        >
+                    </div>
+
+                    <div>
+                        <label for="login-password">Password</label>
+
+                        <input
+                            id="login-password"
+                            name="password"
+                            type="password"
+                            autocomplete="current-password"
+                            placeholder="Enter your password"
+                            required
+                        >
+                    </div>
+
+                    <button type="submit">
+                        Log in
+                    </button>
+
+                </form>
+
+                <button type="button" class="secondary">
+                    Create an account
+                </button>
+
+                <button type="button" class="link-btn">
+                    Can't access your account?
+                </button>
+
+            </section>
+
+        </div>
+
+    </div>
+
+
+    <!-- Registration Screen -->
+    <div class="screen">
+
+        <div class="container">
+
+            <a href="index.html">
+                <img
+                    src="images/Reanchor.jpg"
+                    alt="ReAnchor"
+                    class="logo-image"
+                >
+            </a>
+
+            <p class="subtitle">
+                Create your secure identity
+            </p>
+
+            <section class="card" aria-labelledby="register-heading">
+
+                <div class="icon">
+                
+                </div>
+
+                <h1 id="register-heading">
+                    Create your account
+                </h1>
+
+                <p>
+                    Set up your identity with multiple independent security anchors.
+                </p>
+
+                <form action="/register" method="post">
+
+                    <div>
+                        <label for="register-username">
+                            Username
+                        </label>
+
+                        <input
+                            id="register-username"
+                            name="username"
+                            type="text"
+                            autocomplete="username"
+                            placeholder="Choose a username"
+                            required
+                        >
+                    </div>
+
+                    <div>
+                        <label for="register-email">
+                            Email
+                        </label>
+
+                        <input
+                            id="register-email"
+                            name="email"
+                            type="email"
+                            autocomplete="email"
+                            placeholder="Enter your email"
+                            required
+                        >
+                    </div>
+
+                    <div>
+                        <label for="register-password">
+                            Password
+                        </label>
+
+                        <input
+                            id="register-password"
+                            name="password"
+                            type="password"
+                            autocomplete="new-password"
+                            placeholder="Create a password"
+                            required
+                        >
+                    </div>
+
+                    <div>
+                        <label for="register-password-confirmation">
+                            Confirm password
+                        </label>
+
+                        <input
+                            id="register-password-confirmation"
+                            name="password_confirmation"
+                            type="password"
+                            autocomplete="new-password"
+                            placeholder="Confirm your password"
+                            required
+                        >
+                    </div>
+
+                    <button type="submit">
+                        Create Account
+                    </button>
+
+                </form>
+
+                <button type="button" class="secondary">
+                    Back to Login
+                </button>
+
+            </section>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>
