@@ -575,6 +575,87 @@
     </div>
 
 </section>
+<!-- DASHBOARD SCREEN -->
+<section id="dashboard-screen" class="screen hidden">
+
+    <div class="dashboard">
+
+        <div class="dashboard-header">
+            <div>
+                <h1>ReAnchor Dashboard</h1>
+                <p>Identity verified. Your account is secure.</p>
+            </div>
+
+            <button id="logoutBtn" class="logout-btn">
+                LOGOUT
+            </button>
+        </div>
+
+        <div class="dashboard-grid">
+
+            <div class="dashboard-card">
+                <span class="card-icon">[01]</span>
+                <h3>Security Status</h3>
+                <p class="status">PROTECTED</p>
+                <small>Password + TOTP authentication</small>
+            </div>
+
+            <div class="dashboard-card">
+                <span class="card-icon">[02]</span>
+                <h3>Two-Factor Authentication</h3>
+                <p class="status">ENABLED</p>
+                <small>Your account has TOTP protection.</small>
+            </div>
+
+            <div class="dashboard-card">
+                <span class="card-icon">[03]</span>
+                <h3>Account</h3>
+                <p id="dashboardUsername">User</p>
+                <small>Authenticated successfully</small>
+            </div>
+
+            <div class="dashboard-card">
+                <span class="card-icon">[04]</span>
+                <h3>WebAuthn</h3>
+                <p class="status">ENABLED</p>
+                <small>Passkey authentication is available.</small>
+            </div>
+
+        </div>
+
+        <div class="activity-card">
+
+            <h2>Recent Security Activity</h2>
+
+            <div class="activity">
+                <span>[OK]</span>
+                <div>
+                    <strong>Successful authentication</strong>
+                    <p>Password + TOTP verification completed</p>
+                </div>
+            </div>
+
+            <div class="activity">
+                <span>[KEY]</span>
+                <div>
+                    <strong>WebAuthn authentication</strong>
+                    <p>Passkey authentication enabled</p>
+                </div>
+            </div>
+
+            <div class="activity">
+                <span>[SEC]</span>
+                <div>
+                    <strong>Account protected</strong>
+                    <p>Multi-factor authentication is active</p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
 
     <script src="js/script.js"></script>
 

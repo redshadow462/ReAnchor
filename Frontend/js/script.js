@@ -44,6 +44,24 @@ function showRecoveryCodes() {
         .classList.add("active");
 }
 
+function showDashboard() {
+
+    hideAllScreens();
+
+    document
+        .getElementById("dashboard-screen")
+        .classList.add("active");
+
+    const usernameElement =
+        document.getElementById("dashboardUsername");
+
+    const email =
+        document.getElementById("login-email")?.value.trim();
+
+    if (usernameElement && email) {
+        usernameElement.textContent = email;
+    }
+}
 
 // =========================
 // WEBAUTHN HELPERS
@@ -204,9 +222,8 @@ async function loginWithPasskey() {
             );
         }
 
-        alert("Passkey login successful!");
+         showDashboard();
 
-        showLogin();
 
     } catch (errorMessage) {
         console.error("Passkey login error:", errorMessage);
@@ -827,15 +844,12 @@ if (twoFactorForm) {
                     return;
                 }
 
-                if (data.status === "ok") {
+                    if (data.status === "ok") {
 
-                    twoFactorForm.reset();
+                        twoFactorForm.reset();
 
-                    alert(
-                        "2FA verified. Login successful."
-                    );
-
-                    // Dashboard will be connected here later.
+                        showDashboard();
+                    }
                 }
 
             } catch (error) {
@@ -983,7 +997,6 @@ if (confirmRecoveryButton) {
     );
 }
 
-
 // =========================
 // RECOVERY LOGIN
 // =========================
@@ -1046,10 +1059,42 @@ const passkeyLoginButton =
         "passkey-login"
     );
 
-if (passkeyLoginButton) {
+// =========================
+// LOGOUT
+// =========================
 
-    passkeyLoginButton.addEventListener(
+const logoutButton =
+    document.getElementById("logoutBtn");
+
+if (logoutButton) {
+
+    logoutButton.addEventListener(
         "click",
-        loginWithPasskey
+        async function () {
+
+            try {
+
+                const response = await fetch(
+                    "/logout",
+                    {
+                        method: "POST"
+                    }
+                );
+
+                if (!response.ok) {
+                    console.error("Logout failed.");
+                }
+
+            } catch (error) {
+
+                console.error(
+                    "Logout error:",
+                    error
+                );
+
+            }
+
+            showLogin();
+        }
     );
 }
