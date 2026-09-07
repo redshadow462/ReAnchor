@@ -534,6 +534,58 @@ def totp_challenge():
         "error": "Invalid verification code"
     }), 401
 
+@app.route("/recovery/confirm", methods=["POST"])
+def confirm_recovery_code():
+
+    if "user_id" not in session:
+        return jsonify({
+            "error": "Not authenticated"
+        }), 401
+
+    user_id = session["user_id"]
+    code = request.form.get("code")
+
+    if not code:
+        return jsonify({
+            "error": "Recovery code is required"
+        }), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT code_hash
+        FROM recovery_codes
+        WHERE user_id = %s
+          AND used = FALSE
+        """,
+        (user_id,)
+    )
+
+    rows = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    for row in rows:
+
+        code_hash = row[0]
+
+        try:
+            if ph.verify(code_hash, code):
+
+                return jsonify({
+                    "status": "confirmed",
+                    "message": "Recovery code confirmed."
+                }), 200
+
+        except VerifyMismatchError:
+            continue
+
+    return jsonify({
+        "error": "Invalid recovery code."
+    }), 401
 
 @app.route("/logout", methods=["POST"])
 def logout():

@@ -19,12 +19,9 @@ function showRecovery() {
     document.getElementById("recovery-screen").classList.add("active");
 }
 
-function showRecoveryCodes() {
+function showAuthenticator() {
     hideAllScreens();
-
-    document
-        .getElementById("recovery-codes-screen")
-        .classList.add("active");
+    document.getElementById("authenticator-screen").classList.add("active");
 }
 
 function showTwoFactorScreen() {
@@ -39,7 +36,19 @@ function showTwoFactorScreen() {
         .focus();
 }
 
-// Logo → Login
+function showRecoveryCodes() {
+    hideAllScreens();
+
+    document
+        .getElementById("recovery-codes-screen")
+        .classList.add("active");
+}
+
+
+// =========================
+// LOGO → LOGIN
+// =========================
+
 document.querySelectorAll(".logo-link").forEach(function (link) {
     link.addEventListener("click", function (event) {
         event.preventDefault();
@@ -48,50 +57,74 @@ document.querySelectorAll(".logo-link").forEach(function (link) {
 });
 
 
-const registerForm = document.getElementById("register-form");
+// =========================
+// REGISTER
+// =========================
+
+const registerForm =
+    document.getElementById("register-form");
 
 if (registerForm) {
-    registerForm.addEventListener("submit", async function (event) {
-        event.preventDefault();
 
-        const password =
-            document.getElementById("register-password").value;
+    registerForm.addEventListener(
+        "submit",
+        async function (event) {
 
-        const confirmation =
-            document.getElementById(
-                "register-password-confirmation"
-            ).value;
+            event.preventDefault();
 
-        if (password !== confirmation) {
-            alert("Passwords do not match.");
-            return;
-        }
+            const password =
+                document.getElementById(
+                    "register-password"
+                ).value;
 
-        const formData = new FormData(registerForm);
+            const confirmation =
+                document.getElementById(
+                    "register-password-confirmation"
+                ).value;
 
-        try {
-            const response = await fetch("/register", {
-                method: "POST",
-                body: formData
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                alert(data.error || "Registration failed.");
+            if (password !== confirmation) {
+                alert("Passwords do not match.");
                 return;
             }
 
-            alert("Account created successfully.");
+            const formData =
+                new FormData(registerForm);
 
-            registerForm.reset();
-            showLogin();
+            try {
 
-        } catch (error) {
-            console.error(error);
-            alert("Unable to connect to the ReAnchor server.");
+                const response = await fetch(
+                    "/register",
+                    {
+                        method: "POST",
+                        body: formData
+                    }
+                );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok) {
+                    alert(
+                        data.error ||
+                        "Registration failed."
+                    );
+                    return;
+                }
+
+                registerForm.reset();
+
+                showLogin();
+
+            } catch (error) {
+
+                console.error(error);
+
+                alert(
+                    "Unable to connect to the ReAnchor server."
+                );
+            }
         }
-    });
+    );
 }
 
 
@@ -99,47 +132,63 @@ if (registerForm) {
 // LOGIN
 // =========================
 
-const loginForm = document.getElementById("login-form");
+const loginForm =
+    document.getElementById("login-form");
 
 if (loginForm) {
-    loginForm.addEventListener("submit", async function (event) {
-        event.preventDefault();
 
-        const formData = new FormData(loginForm);
+    loginForm.addEventListener(
+        "submit",
+        async function (event) {
 
-        try {
-            const response = await fetch("/login", {
-                method: "POST",
-                body: formData
-            });
+            event.preventDefault();
 
-            const data = await response.json();
+            const formData =
+                new FormData(loginForm);
 
-            if (!response.ok) {
-                alert(data.error || "Login failed.");
-                return;
+            try {
+
+                const response = await fetch(
+                    "/login",
+                    {
+                        method: "POST",
+                        body: formData
+                    }
+                );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok) {
+                    alert(
+                        data.error ||
+                        "Login failed."
+                    );
+                    return;
+                }
+
+                // Existing account with TOTP
+                if (data.status === "2fa_required") {
+                    showTwoFactorChallenge();
+                    return;
+                }
+
+                // Account without TOTP
+                if (data.status === "ok") {
+                    await setupAuthenticator();
+                    return;
+                }
+
+            } catch (error) {
+
+                console.error(error);
+
+                alert(
+                    "Unable to connect to the ReAnchor server."
+                );
             }
-
-            // Existing account already has TOTP
-            if (data.status === "2fa_required") {
-                showTwoFactorChallenge();
-                return;
-            }
-
-            // First login / TOTP not configured
-            if (data.status === "ok") {
-                await setupAuthenticator();
-                return;
-            }
-
-        } catch (error) {
-            console.error(error);
-
-            alert(
-                "Unable to connect to the ReAnchor server."
-            );
         }
-    });
+    );
 }
 
 
@@ -150,11 +199,16 @@ if (loginForm) {
 async function setupAuthenticator() {
 
     try {
-        const response = await fetch("/2fa/setup", {
-            method: "POST"
-        });
 
-        const data = await response.json();
+        const response = await fetch(
+            "/2fa/setup",
+            {
+                method: "POST"
+            }
+        );
+
+        const data =
+            await response.json();
 
         if (!response.ok) {
             alert(
@@ -164,22 +218,21 @@ async function setupAuthenticator() {
             return;
         }
 
-        // QR code
-        const qr = document.getElementById("totp-qr");
+        const qr =
+            document.getElementById("totp-qr");
 
         if (qr) {
             qr.src = data.qr_code;
         }
 
-        // Manual setup key
         const setupKey =
             document.getElementById("setup-key");
 
         if (setupKey) {
-            setupKey.textContent = data.setup_key;
+            setupKey.textContent =
+                data.setup_key;
         }
 
-        // Clear previous OTP
         const setupCode =
             document.getElementById("setup-code");
 
@@ -187,7 +240,6 @@ async function setupAuthenticator() {
             setupCode.value = "";
         }
 
-        // Clear previous error
         const errorElement =
             document.getElementById("totp-error");
 
@@ -196,10 +248,10 @@ async function setupAuthenticator() {
             errorElement.hidden = true;
         }
 
-        // Show authenticator screen
         showAuthenticator();
 
     } catch (error) {
+
         console.error(error);
 
         alert(
@@ -236,7 +288,6 @@ if (activateTotpButton) {
                 errorElement.hidden = true;
             }
 
-            // Validate 6-digit OTP
             if (!/^\d{6}$/.test(otp)) {
 
                 if (errorElement) {
@@ -249,21 +300,24 @@ if (activateTotpButton) {
                 return;
             }
 
-            const formData = new FormData();
+            const formData =
+                new FormData();
 
             formData.append("otp", otp);
 
             try {
 
-                const response = await fetch(
-                    "/2fa/verify",
-                    {
-                        method: "POST",
-                        body: formData
-                    }
-                );
+                const response =
+                    await fetch(
+                        "/2fa/verify",
+                        {
+                            method: "POST",
+                            body: formData
+                        }
+                    );
 
-                const data = await response.json();
+                const data =
+                    await response.json();
 
                 if (!response.ok) {
 
@@ -278,9 +332,6 @@ if (activateTotpButton) {
                     return;
                 }
 
-                
-
-                
                 if (data.status === "enabled") {
 
                     document
@@ -288,11 +339,11 @@ if (activateTotpButton) {
                         .value = "";
 
                     displayRecoveryCodes(
-                            data.recovery_codes
+                        data.recovery_codes
                     );
 
-                     showRecoveryCodes();
-                    }
+                    showRecoveryCodes();
+                }
 
             } catch (error) {
 
@@ -310,15 +361,91 @@ if (activateTotpButton) {
 }
 
 
+// =========================
+// DISPLAY RECOVERY CODES
+// =========================
+
+function displayRecoveryCodes(codes) {
+
+    const list =
+        document.getElementById(
+            "recovery-codes-list"
+        );
+
+    if (!list) {
+        return;
+    }
+
+    list.innerHTML = "";
+
+    codes.forEach(function (code) {
+
+        const codeElement =
+            document.createElement("div");
+
+        codeElement.textContent = code;
+
+        list.appendChild(codeElement);
+    });
+
+
+    const downloadButton =
+        document.getElementById(
+            "download-recovery-codes"
+        );
+
+    if (downloadButton) {
+
+        downloadButton.onclick =
+            function () {
+
+                const text =
+                    "ReAnchor Recovery Codes\n" +
+                    "========================\n\n" +
+                    codes.join("\n") +
+                    "\n\nKeep these codes secure.";
+
+                const blob =
+                    new Blob(
+                        [text],
+                        {
+                            type: "text/plain"
+                        }
+                    );
+
+                const url =
+                    URL.createObjectURL(blob);
+
+                const link =
+                    document.createElement("a");
+
+                link.href = url;
+                link.download =
+                    "ReAnchor-Recovery-Codes.txt";
+
+                link.click();
+
+                URL.revokeObjectURL(url);
+            };
+    }
+}
+
+
+// =========================
+// TWO-FACTOR LOGIN
+// =========================
 
 function showTwoFactorChallenge() {
     showTwoFactorScreen();
 }
 
 const twoFactorForm =
-    document.getElementById("two-factor-form");
+    document.getElementById(
+        "two-factor-form"
+    );
 
 if (twoFactorForm) {
+
     twoFactorForm.addEventListener(
         "submit",
         async function (event) {
@@ -332,7 +459,9 @@ if (twoFactorForm) {
                     .trim();
 
             const errorElement =
-                document.getElementById("two-factor-error");
+                document.getElementById(
+                    "two-factor-error"
+                );
 
             if (errorElement) {
                 errorElement.textContent = "";
@@ -340,39 +469,51 @@ if (twoFactorForm) {
             }
 
             if (!/^\d{6}$/.test(otp)) {
+
                 if (errorElement) {
                     errorElement.textContent =
                         "Please enter a valid 6-digit code.";
+
                     errorElement.hidden = false;
                 }
+
                 return;
             }
 
-            const formData = new FormData();
+            const formData =
+                new FormData();
+
             formData.append("otp", otp);
 
             try {
-                const response = await fetch(
-                    "/2fa/challenge",
-                    {
-                        method: "POST",
-                        body: formData
-                    }
-                );
 
-                const data = await response.json();
+                const response =
+                    await fetch(
+                        "/2fa/challenge",
+                        {
+                            method: "POST",
+                            body: formData
+                        }
+                    );
+
+                const data =
+                    await response.json();
 
                 if (!response.ok) {
+
                     if (errorElement) {
                         errorElement.textContent =
                             data.error ||
                             "Invalid verification code.";
+
                         errorElement.hidden = false;
                     }
+
                     return;
                 }
 
                 if (data.status === "ok") {
+
                     twoFactorForm.reset();
 
                     alert(
@@ -383,25 +524,154 @@ if (twoFactorForm) {
                 }
 
             } catch (error) {
+
                 console.error(error);
 
                 if (errorElement) {
                     errorElement.textContent =
                         "Unable to connect to the ReAnchor server.";
+
                     errorElement.hidden = false;
                 }
             }
         }
     );
 }
+
+
+// =========================
+// RECOVERY CODE CONFIRMATION
+// =========================
+
+const confirmRecoveryButton =
+    document.getElementById(
+        "confirm-recovery-code"
+    );
+
+if (confirmRecoveryButton) {
+
+    confirmRecoveryButton.addEventListener(
+        "click",
+        async function () {
+
+            const saved =
+                document.getElementById(
+                    "recovery-saved"
+                ).checked;
+
+            const code =
+                document
+                    .getElementById(
+                        "recovery-confirm-code"
+                    )
+                    .value
+                    .trim();
+
+            const errorElement =
+                document.getElementById(
+                    "recovery-confirm-error"
+                );
+
+            if (errorElement) {
+                errorElement.textContent = "";
+                errorElement.hidden = true;
+            }
+
+            if (!saved) {
+
+                if (errorElement) {
+                    errorElement.textContent =
+                        "Please confirm that you have saved your recovery codes.";
+
+                    errorElement.hidden = false;
+                }
+
+                return;
+            }
+
+            if (code.length !== 16) {
+
+                if (errorElement) {
+                    errorElement.textContent =
+                        "Please enter a valid 16-character recovery code.";
+
+                    errorElement.hidden = false;
+                }
+
+                return;
+            }
+
+            const formData =
+                new FormData();
+
+            formData.append("code", code);
+
+            try {
+
+                const response =
+                    await fetch(
+                        "/recovery/confirm",
+                        {
+                            method: "POST",
+                            body: formData
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok) {
+
+                    if (errorElement) {
+                        errorElement.textContent =
+                            data.error ||
+                            "Invalid recovery code.";
+
+                        errorElement.hidden = false;
+                    }
+
+                    return;
+                }
+
+                if (data.status === "confirmed") {
+
+                    alert(
+                        "Recovery codes saved successfully."
+                    );
+
+                    showLogin();
+                }
+
+            } catch (error) {
+
+                console.error(error);
+
+                if (errorElement) {
+                    errorElement.textContent =
+                        "Unable to connect to the ReAnchor server.";
+
+                    errorElement.hidden = false;
+                }
+            }
+        }
+    );
+}
+
+
+// =========================
+// RECOVERY LOGIN
+// =========================
+
 const recoveryForm =
-    document.getElementById("recovery-form");
+    document.getElementById(
+        "recovery-form"
+    );
 
 if (recoveryForm) {
 
     recoveryForm.addEventListener(
         "submit",
-        function (event) {
+        async function (event) {
 
             event.preventDefault();
 
@@ -420,8 +690,10 @@ if (recoveryForm) {
                 return;
             }
 
+            // Recovery backend will be connected
+            // when password-reset flow is implemented.
             alert(
-                "Recovery backend will be connected next."
+                "Recovery verification will be connected next."
             );
         }
     );
