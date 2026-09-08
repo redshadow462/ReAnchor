@@ -1394,38 +1394,61 @@ if (oldLegacyRecoveryForm) {
 }
 
 // =========================================================
-// PURPLE TEAM DEMO: BRUTE FORCE ATTACK SIMULATOR
+// SOC THREAT MONITOR DASHBOARD LOGIC
 // =========================================================
+
+const btnOpenThreatMonitor = document.getElementById("btnOpenThreatMonitor");
+if (btnOpenThreatMonitor) {
+    btnOpenThreatMonitor.addEventListener("click", function() {
+        // Use your app's built-in screen hiding function
+        hideAllScreens(); 
+        
+        // Show the Threat Dashboard
+        const threatScreen = document.getElementById("threat-dashboard-screen");
+        if (threatScreen) {
+            threatScreen.hidden = false;
+            threatScreen.classList.add("active");
+        }
+    });
+}
+
+// The Ping Trace Animation
+async function pingAttacker(ip) {
+    const consoleLog = document.getElementById("threat-console-log");
+    consoleLog.innerHTML += `<br><span style="color: var(--teal); font-weight: bold;">[TRACE] Initiating ICMP echo request and geolocation for ${ip}...</span><br>`;
+    
+    // Simulate ping packets
+    for(let i=1; i<=4; i++) {
+        await new Promise(r => setTimeout(r, 600)); // Delay between pings
+        consoleLog.innerHTML += `<span style="color: var(--dim);">Reply from ${ip}: bytes=32 time=${Math.floor(Math.random() * 50) + 12}ms TTL=54</span><br>`;
+        consoleLog.parentElement.scrollTop = consoleLog.parentElement.scrollHeight;
+    }
+    
+    await new Promise(r => setTimeout(r, 800));
+    consoleLog.innerHTML += `<span style="color: var(--warning); font-weight: bold;">[GEO-INTEL] IP Resolved: 185.15.59.224 (Moscow, RU) - Known VPN Node</span><br><br>`;
+    consoleLog.parentElement.scrollTop = consoleLog.parentElement.scrollHeight;
+}
 
 const btnSimulateAttack = document.getElementById("btnSimulateAttack");
 if (btnSimulateAttack) {
-    // Clone to prevent duplicate listeners if re-run
     const newBtnSimulateAttack = btnSimulateAttack.cloneNode(true);
     btnSimulateAttack.parentNode.replaceChild(newBtnSimulateAttack, btnSimulateAttack);
 
     newBtnSimulateAttack.addEventListener("click", async function () {
         const consoleLog = document.getElementById("threat-console-log");
         
-        // Ask for the exact email to attack
         const targetEmail = prompt("Enter the target account email to attack (e.g. saisabs@gmail.com):");
-        if (!targetEmail) {
-            consoleLog.innerHTML += `<span style="color: var(--muted);">[SYSTEM] Attack aborted. No target specified.</span><br>`;
-            return;
-        }
+        if (!targetEmail) return;
         
         consoleLog.innerHTML += `<span style="color: var(--warning);">[SYSTEM] Initiating dictionary attack against /recovery/knowledge for target: ${targetEmail}...</span><br>`;
         
         const dictionaryGuesses = ["password123", "pizza", "pineapple", "windows", "linux", "macOS", "batman"];
-        
-        // Disable button during attack
         newBtnSimulateAttack.disabled = true;
         newBtnSimulateAttack.textContent = "Attack in Progress...";
 
         for (let i = 0; i < dictionaryGuesses.length; i++) {
             const guess = dictionaryGuesses[i];
-            
-            // Add a slight delay for cinematic visual effect
-            await new Promise(r => setTimeout(r, 600)); 
+            await new Promise(r => setTimeout(r, 500)); 
 
             consoleLog.innerHTML += `<span style="color: var(--danger);">[ATTACK] Sending payload: {"answer": "${guess}"}</span><br>`;
             
@@ -1435,36 +1458,38 @@ if (btnSimulateAttack) {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ email: targetEmail, answer: guess })
                 });
-                
                 const data = await res.json();
 
                 if (res.status === 429 || data.defense_triggered) {
-                    consoleLog.innerHTML += `<span style="color: var(--teal); font-weight: bold;">[DEFENSE] BLOCKED: Automated rate-limit triggered! Attacker IP blacklisted.</span><br>`;
-                    break; // Stop the attack, defense won
+                    // DEFENSE WON! Extract IP and push to Defense Matrix UI
+                    const badIp = data.attacker_ip || "127.0.0.1";
+                    consoleLog.innerHTML += `<span style="color: var(--teal); font-weight: bold;">[DEFENSE] BLOCKED: Automated rate-limit triggered! Attacker IP (${badIp}) blacklisted.</span><br>`;
+                    
+                    const blockedList = document.getElementById("blocked-ips-list");
+                    if (blockedList.innerHTML.includes("No active threats")) blockedList.innerHTML = "";
+                    
+                    // Add Ping button to the UI
+                    blockedList.innerHTML += `
+                        <div style="background: #1a1a1a; padding: 10px; border: 1px solid #333; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: var(--danger); font-family: 'IBM Plex Mono', monospace;">${badIp}</span>
+                            <button class="btn-mini" onclick="pingAttacker('${badIp}')" style="margin: 0; background: var(--teal); color: #000;">Trace / Ping</button>
+                        </div>
+                    `;
+                    break;
                 } else if (res.status === 401) {
                     consoleLog.innerHTML += `<span style="color: var(--warning);">[RESULT] Failed: ${data.error}</span><br>`;
                 } else if (res.status === 404) {
-                    consoleLog.innerHTML += `<span style="color: var(--muted);">[ERROR] Target account not found. Make sure you entered the exact email.</span><br>`;
+                    consoleLog.innerHTML += `<span style="color: var(--muted);">[ERROR] Target account not found.</span><br>`;
                     break;
-                } else if (res.ok) {
-                    consoleLog.innerHTML += `<span style="color: var(--danger); font-weight: bold;">[CRITICAL] BREACH SUCCESSFUL! Target compromised.</span><br>`;
-                    break;
-                } else {
-                    consoleLog.innerHTML += `<span style="color: var(--muted);">[ERROR] Unhandled response code: ${res.status}</span><br>`;
                 }
             } catch (err) {
                 consoleLog.innerHTML += `<span style="color: var(--muted);">[ERROR] Connection refused.</span><br>`;
             }
-            
-            // Auto-scroll to bottom of the console
             consoleLog.parentElement.scrollTop = consoleLog.parentElement.scrollHeight;
         }
 
         consoleLog.innerHTML += `<span style="color: var(--muted);">[SYSTEM] Attack sequence terminated.</span><br><br>`;
         newBtnSimulateAttack.disabled = false;
         newBtnSimulateAttack.textContent = "Launch Dictionary Attack";
-        
-        // Refresh audit log to show the defense event
-        if (typeof loadDashboardData === "function") loadDashboardData();
     });
 }

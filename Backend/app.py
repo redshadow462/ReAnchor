@@ -923,13 +923,17 @@ def recovery_knowledge():
 
     # DEFENSE MECHANISM: Check if attacker is locked out
     attempts = BRUTE_FORCE_TRACKER.get(email, 0)
+# DEFENSE MECHANISM: Check if attacker is locked out
+    attempts = BRUTE_FORCE_TRACKER.get(email, 0)
     if attempts >= 3:
-        # Returning a safe 429 response without calling missing functions
+        # Capture the attacker's IP (defaults to 127.0.0.1 for localhost)
+        attacker_ip = request.remote_addr or "127.0.0.1"
         return jsonify({
             "error": "DEFENSE ACTIVE: Rate limit exceeded. Account temporarily locked.",
-            "defense_triggered": True
+            "defense_triggered": True,
+            "attacker_ip": attacker_ip
         }), 429
-
+        
     conn = get_db_connection()
     cursor = conn.cursor()
 

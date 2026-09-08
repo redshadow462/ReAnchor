@@ -12,6 +12,41 @@
 
 <body>
 
+    <!-- ========================================== -->
+<!-- SEPARATE THREAT MONITOR DASHBOARD          -->
+<!-- ========================================== -->
+    <div class="screen" id="threat-dashboard-screen" hidden>
+        <div style="max-width: 1000px; margin: 40px auto; padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--danger); padding-bottom: 15px; margin-bottom: 25px;">
+                <h1 style="color: var(--danger); margin: 0; font-size: 1.8rem;">🛑 SOC Threat Intelligence</h1>
+                <button class="secondary" onclick="showDashboard()" style="margin: 0; width: auto;">Back to Main App</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+                <!-- Left: Attack Console -->
+                <div class="card" style="border: 1px solid var(--danger);">
+                    <h3 style="color: var(--danger); margin-top: 0;">⚔️ Offensive Simulation Network</h3>
+                    <p style="font-size: 0.8rem; color: var(--muted); margin-bottom: 15px;">Launch a simulated brute-force dictionary attack against a target account's Knowledge Anchor.</p>
+                    <button type="button" id="btnSimulateAttack" style="background: var(--danger); color: #fff; border: none; margin-bottom: 15px; width: 100%;">
+                        Launch Dictionary Attack
+                    </button>
+                    <div style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px; height: 350px; overflow-y: auto; font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem;">
+                        <div id="threat-console-log" style="color: var(--dim);">System idle. Waiting for attack vectors...</div>
+                    </div>
+                </div>
+
+                <!-- Right: Blocked IPs & Trace -->
+                <div class="card" style="border: 1px solid var(--teal);">
+                    <h3 style="color: var(--teal); margin-top: 0;">🛡️ Defense Matrix</h3>
+                    <p style="font-size: 0.8rem; color: var(--muted); margin-bottom: 15px;">Auto-banned Threat Actors.</p>
+                    
+                    <div id="blocked-ips-list" style="margin-bottom: 20px;">
+                        <p style="font-size: 0.8rem; color: var(--dim); font-style: italic;">No active threats detected.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="screen active" id="login-screen">
 
@@ -740,22 +775,9 @@
         <button type="button" class="secondary" id="btnDemoCancelTrigger">Test Cancellation (2FA Check)</button>
     </div>
 
-    <!-- PURPLE TEAM DEMO: Attack vs Defense (PASTE THIS PART) -->
-    <div style="margin-top: 25px; border-top: 1px solid #333; padding-top: 15px;">
-        <h3 style="color: var(--danger); font-size: 1rem; margin-bottom: 10px;">⚔️ Live Threat Simulation</h3>
-        <p style="font-size: 0.8rem; color: var(--muted); margin-bottom: 15px;">
-            Simulate an automated brute-force dictionary attack against your Knowledge Anchor. Watch the defense mechanism detect and block the attack.
-        </p>
-        
-        <button type="button" id="btnSimulateAttack" style="background: var(--danger); color: #fff; border: none; margin-bottom: 15px;">
-            Launch Dictionary Attack
-        </button>
-
-        <div style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px; height: 180px; overflow-y: auto; font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem;">
-            <div id="threat-console-log" style="color: var(--dim);">System idle. Waiting for attack vectors...</div>
-        </div>
-    </div>
-    <!-- END PURPLE TEAM DEMO -->
+    <button type="button" id="btnOpenThreatMonitor" style="width: 100%; margin-top: 20px; background: #1a1a1a; border: 1px dashed var(--danger); color: var(--danger);">
+        ⚠️ OPEN ADMIN THREAT MONITOR
+    </button>
 
 </div>
 
