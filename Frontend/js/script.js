@@ -670,13 +670,18 @@ if (btnSubmitCancelTrigger) {
 const btnDemoSimulateInactive = document.getElementById("btnDemoSimulateInactive");
 if (btnDemoSimulateInactive) {
     btnDemoSimulateInactive.addEventListener("click", async function () {
-        if (!confirm("Simulate 31 days of inactivity? This will cause your Dead Man's Switch to enter the contest/grace period window.")) return;
+        if (!confirm("Simulate 31 days of inactivity? This will automatically trigger the switch and transfer your vault data.")) return;
         try {
             const res = await fetch("/dms/simulate-inactive", { method: "POST" });
             const data = await res.json();
             if (res.ok) {
                 alert("⏳ " + data.message);
                 await loadDashboardData();
+                
+                // Automatically trigger the confirmation step for instant transfer
+                const confirmBtn = document.getElementById("btnDemoSimulateConfirm");
+                if (confirmBtn) confirmBtn.click();
+                
             } else {
                 alert(data.error || "Simulation failed");
             }
