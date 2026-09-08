@@ -908,17 +908,27 @@ def recovery_init():
         "method": "knowledge",
         "question": question_text
     }), 200
-
+# In-memory tracker for the Hackathon Demo (Resets when server restarts)
+BRUTE_FORCE_TRACKER = {}
 
 @app.route("/recovery/knowledge", methods=["POST"])
 def recovery_knowledge():
-    """Verifies the Knowledge Anchor answer and logs the user in."""
+    """Verifies the Knowledge Anchor with Brute-Force Defense."""
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
     answer = data.get("answer", "")
 
     if not email or not answer:
         return jsonify({"error": "Email and answer are required"}), 400
+
+    # DEFENSE MECHANISM: Check if attacker is locked out
+    attempts = BRUTE_FORCE_TRACKER.get(email, 0)
+    if attempts >= 3:
+        # Returning a safe 429 response without calling missing functions
+        return jsonify({
+            "error": "DEFENSE ACTIVE: Rate limit exceeded. Account temporarily locked.",
+            "defense_triggered": True
+        }), 429
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -947,17 +957,20 @@ def recovery_knowledge():
     try:
         ph.verify(answer_hash, normalized_answer)
     except VerifyMismatchError:
+        # FAILED GUESS: Increment the brute force tracker
+        BRUTE_FORCE_TRACKER[email] = attempts + 1
         cursor.close()
         conn.close()
-        return jsonify({"error": "Incorrect answer. Access denied."}), 401
+        return jsonify({
+            "error": f"Incorrect answer. Attempt {attempts + 1}/3", 
+            "defense_triggered": False
+        }), 401
 
-    # SUCCESS -> Manually update last activity with direct SQL
-    cursor.execute(
-        "UPDATE users SET last_activity = CURRENT_TIMESTAMP WHERE user_id = %s",
-        (user_id,)
-    )
-    conn.commit()
+    # SUCCESS: Reset tracker and log in
+    BRUTE_FORCE_TRACKER[email] = 0
     
+    cursor.execute("UPDATE users SET last_activity = CURRENT_TIMESTAMP WHERE user_id = %s", (user_id,))
+    conn.commit()
     cursor.close()
     conn.close()
 
@@ -966,5 +979,6 @@ def recovery_knowledge():
     session["username"] = username
 
     return jsonify({"status": "ok", "message": "Identity verified via Knowledge Anchor."}), 200
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)

@@ -1392,3 +1392,79 @@ if (oldLegacyRecoveryForm) {
         }
     });
 }
+
+// =========================================================
+// PURPLE TEAM DEMO: BRUTE FORCE ATTACK SIMULATOR
+// =========================================================
+
+const btnSimulateAttack = document.getElementById("btnSimulateAttack");
+if (btnSimulateAttack) {
+    // Clone to prevent duplicate listeners if re-run
+    const newBtnSimulateAttack = btnSimulateAttack.cloneNode(true);
+    btnSimulateAttack.parentNode.replaceChild(newBtnSimulateAttack, btnSimulateAttack);
+
+    newBtnSimulateAttack.addEventListener("click", async function () {
+        const consoleLog = document.getElementById("threat-console-log");
+        
+        // Ask for the exact email to attack
+        const targetEmail = prompt("Enter the target account email to attack (e.g. saisabs@gmail.com):");
+        if (!targetEmail) {
+            consoleLog.innerHTML += `<span style="color: var(--muted);">[SYSTEM] Attack aborted. No target specified.</span><br>`;
+            return;
+        }
+        
+        consoleLog.innerHTML += `<span style="color: var(--warning);">[SYSTEM] Initiating dictionary attack against /recovery/knowledge for target: ${targetEmail}...</span><br>`;
+        
+        const dictionaryGuesses = ["password123", "pizza", "pineapple", "windows", "linux", "macOS", "batman"];
+        
+        // Disable button during attack
+        newBtnSimulateAttack.disabled = true;
+        newBtnSimulateAttack.textContent = "Attack in Progress...";
+
+        for (let i = 0; i < dictionaryGuesses.length; i++) {
+            const guess = dictionaryGuesses[i];
+            
+            // Add a slight delay for cinematic visual effect
+            await new Promise(r => setTimeout(r, 600)); 
+
+            consoleLog.innerHTML += `<span style="color: var(--danger);">[ATTACK] Sending payload: {"answer": "${guess}"}</span><br>`;
+            
+            try {
+                const res = await fetch("/recovery/knowledge", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: targetEmail, answer: guess })
+                });
+                
+                const data = await res.json();
+
+                if (res.status === 429 || data.defense_triggered) {
+                    consoleLog.innerHTML += `<span style="color: var(--teal); font-weight: bold;">[DEFENSE] BLOCKED: Automated rate-limit triggered! Attacker IP blacklisted.</span><br>`;
+                    break; // Stop the attack, defense won
+                } else if (res.status === 401) {
+                    consoleLog.innerHTML += `<span style="color: var(--warning);">[RESULT] Failed: ${data.error}</span><br>`;
+                } else if (res.status === 404) {
+                    consoleLog.innerHTML += `<span style="color: var(--muted);">[ERROR] Target account not found. Make sure you entered the exact email.</span><br>`;
+                    break;
+                } else if (res.ok) {
+                    consoleLog.innerHTML += `<span style="color: var(--danger); font-weight: bold;">[CRITICAL] BREACH SUCCESSFUL! Target compromised.</span><br>`;
+                    break;
+                } else {
+                    consoleLog.innerHTML += `<span style="color: var(--muted);">[ERROR] Unhandled response code: ${res.status}</span><br>`;
+                }
+            } catch (err) {
+                consoleLog.innerHTML += `<span style="color: var(--muted);">[ERROR] Connection refused.</span><br>`;
+            }
+            
+            // Auto-scroll to bottom of the console
+            consoleLog.parentElement.scrollTop = consoleLog.parentElement.scrollHeight;
+        }
+
+        consoleLog.innerHTML += `<span style="color: var(--muted);">[SYSTEM] Attack sequence terminated.</span><br><br>`;
+        newBtnSimulateAttack.disabled = false;
+        newBtnSimulateAttack.textContent = "Launch Dictionary Attack";
+        
+        // Refresh audit log to show the defense event
+        if (typeof loadDashboardData === "function") loadDashboardData();
+    });
+}

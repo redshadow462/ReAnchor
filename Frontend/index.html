@@ -730,15 +730,34 @@
         </div>
 
         <!-- Demo Sandbox -->
-        <div class="demo-sandbox">
-            <h3>[DEV] Hackathon Demo Sandbox</h3>
-            <p>Use these controls to instantly simulate time passing and test the Dead Man's Switch workflow without waiting 30 days.</p>
-            <div class="demo-btn-group">
-                <button type="button" class="secondary" id="btnDemoSimulateInactive">1. Simulate 31 Days Inactivity</button>
-                <button type="button" class="danger" id="btnDemoSimulateConfirm">2. Force Switch Confirmation</button>
-                <button type="button" class="secondary" id="btnDemoCancelTrigger">Test Cancellation (2FA Check)</button>
-            </div>
+<div class="demo-sandbox">
+    <h3>[DEV] Hackathon Demo Sandbox</h3>
+    <p>Use these controls to instantly simulate time passing and test the Dead Man's Switch workflow without waiting 30 days.</p>
+    
+    <div class="demo-btn-group">
+        <button type="button" class="secondary" id="btnDemoSimulateInactive">1. Simulate 31 Days Inactivity</button>
+        <button type="button" class="danger" id="btnDemoSimulateConfirm">2. Force Switch Confirmation</button>
+        <button type="button" class="secondary" id="btnDemoCancelTrigger">Test Cancellation (2FA Check)</button>
+    </div>
+
+    <!-- PURPLE TEAM DEMO: Attack vs Defense (PASTE THIS PART) -->
+    <div style="margin-top: 25px; border-top: 1px solid #333; padding-top: 15px;">
+        <h3 style="color: var(--danger); font-size: 1rem; margin-bottom: 10px;">⚔️ Live Threat Simulation</h3>
+        <p style="font-size: 0.8rem; color: var(--muted); margin-bottom: 15px;">
+            Simulate an automated brute-force dictionary attack against your Knowledge Anchor. Watch the defense mechanism detect and block the attack.
+        </p>
+        
+        <button type="button" id="btnSimulateAttack" style="background: var(--danger); color: #fff; border: none; margin-bottom: 15px;">
+            Launch Dictionary Attack
+        </button>
+
+        <div style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px; height: 180px; overflow-y: auto; font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem;">
+            <div id="threat-console-log" style="color: var(--dim);">System idle. Waiting for attack vectors...</div>
         </div>
+    </div>
+    <!-- END PURPLE TEAM DEMO -->
+
+</div>
 
     </div>
 </section>
