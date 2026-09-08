@@ -1042,20 +1042,73 @@ if (twoFactorForm) {
     });
 }
 
-const recoveryForm = document.getElementById("recovery-form");
-if (recoveryForm) {
-    recoveryForm.addEventListener("submit", async function (event) {
-        event.preventDefault();
-        const code = document.getElementById("recovery-code").value.trim();
-        const errorElement = document.getElementById("recovery-error");
+// =========================================================
+// DYNAMIC RECOVERY FLOW (Email -> Code OR Knowledge Anchor)
+// =========================================================
 
-        if (errorElement) { errorElement.textContent = ""; errorElement.hidden = true; }
+function resetRecoveryUI() {
+    const initF = document.getElementById("recovery-init-form");
+    const codeF = document.getElementById("recovery-code-form");
+    const knowF = document.getElementById("recovery-knowledge-form");
+    
+    if (initF) { initF.hidden = false; initF.reset(); }
+    if (codeF) { codeF.hidden = true; codeF.reset(); }
+    if (knowF) { knowF.hidden = true; knowF.reset(); }
+    
+    document.querySelectorAll("#recovery-screen .setup-error").forEach(el => el.hidden = true);
+}
+
+// STEP 1: Find Account by Email
+const recoveryInitForm = document.getElementById("recovery-init-form");
+if (recoveryInitForm) {
+    recoveryInitForm.addEventListener("submit", async function(e) {
+        e.preventDefault();
+        const email = document.getElementById("recovery-email").value.trim();
+        const errElem = document.getElementById("recovery-init-error");
+        if (errElem) { errElem.textContent = ""; errElem.hidden = true; }
+
+        try {
+            const res = await fetch("/recovery/init", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: email })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                if (errElem) { errElem.textContent = data.error || "Failed to find account."; errElem.hidden = false; }
+                return;
+            }
+
+            recoveryInitForm.hidden = true;
+
+            if (data.method === "code") {
+                document.getElementById("recovery-code-form").hidden = false;
+                const msgElem = document.getElementById("recovery-code-msg");
+                if (msgElem) msgElem.textContent = data.message;
+            } else if (data.method === "knowledge") {
+                document.getElementById("recovery-knowledge-form").hidden = false;
+                const qElem = document.getElementById("recovery-question-text");
+                if (qElem) qElem.textContent = data.question;
+            }
+        } catch (err) {
+            console.error(err);
+            if (errElem) { errElem.textContent = "Connection error."; errElem.hidden = false; }
+        }
+    });
+}
+
+// STEP 2A: Submit Recovery Code
+const recoveryCodeForm = document.getElementById("recovery-code-form");
+if (recoveryCodeForm) {
+    recoveryCodeForm.addEventListener("submit", async function(e) {
+        e.preventDefault();
+        const code = document.getElementById("recovery-code").value.trim();
+        const errElem = document.getElementById("recovery-code-error");
+        if (errElem) { errElem.textContent = ""; errElem.hidden = true; }
 
         if (code.length !== 16) {
-            if (errorElement) {
-                errorElement.textContent = "Please enter a valid 16-character recovery code.";
-                errorElement.hidden = false;
-            }
+            if (errElem) { errElem.textContent = "Code must be 16 characters."; errElem.hidden = false; }
             return;
         }
 
@@ -1063,25 +1116,51 @@ if (recoveryForm) {
         formData.append("recovery_code", code);
 
         try {
-            const response = await fetch("/recovery", { method: "POST", body: formData });
-            const data = await response.json();
+            const res = await fetch("/recovery", { method: "POST", body: formData });
+            const data = await res.json();
 
-            if (!response.ok) {
-                if (errorElement) {
-                    errorElement.textContent = data.error || "Recovery verification failed.";
-                    errorElement.hidden = false;
-                }
+            if (!res.ok) {
+                if (errElem) { errElem.textContent = data.error || "Verification failed."; errElem.hidden = false; }
                 return;
             }
-
-            recoveryForm.reset();
+            
+            resetRecoveryUI();
             showDashboard();
-        } catch (error) {
-            console.error(error);
-            if (errorElement) {
-                errorElement.textContent = "Unable to connect to the ReAnchor server.";
-                errorElement.hidden = false;
+        } catch (err) {
+            console.error(err);
+            if (errElem) { errElem.textContent = "Connection error."; errElem.hidden = false; }
+        }
+    });
+}
+
+// STEP 2B: Submit Knowledge Anchor Answer
+const recoveryKnowledgeForm = document.getElementById("recovery-knowledge-form");
+if (recoveryKnowledgeForm) {
+    recoveryKnowledgeForm.addEventListener("submit", async function(e) {
+        e.preventDefault();
+        const email = document.getElementById("recovery-email").value.trim();
+        const answer = document.getElementById("recovery-answer").value;
+        const errElem = document.getElementById("recovery-knowledge-error");
+        if (errElem) { errElem.textContent = ""; errElem.hidden = true; }
+
+        try {
+            const res = await fetch("/recovery/knowledge", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: email, answer: answer })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                if (errElem) { errElem.textContent = data.error || "Incorrect answer."; errElem.hidden = false; }
+                return;
             }
+            
+            resetRecoveryUI();
+            showDashboard();
+        } catch (err) {
+            console.error(err);
+            if (errElem) { errElem.textContent = "Connection error."; errElem.hidden = false; }
         }
     });
 }
@@ -1143,3 +1222,173 @@ window.addEventListener("DOMContentLoaded", async function () {
     } catch (e) {}
     showLogin();
 });
+
+// =========================================================
+// CRITICAL FIX: RECOVERY FORMS (Stops page reload to login)
+// =========================================================
+
+function resetRecoveryUI() {
+    const initF = document.getElementById("recovery-init-form");
+    const codeF = document.getElementById("recovery-code-form");
+    const knowF = document.getElementById("recovery-knowledge-form");
+    
+    if (initF) { initF.hidden = false; initF.reset(); }
+    if (codeF) { codeF.hidden = true; codeF.reset(); }
+    if (knowF) { knowF.hidden = true; knowF.reset(); }
+    
+    document.querySelectorAll("#recovery-screen .setup-error").forEach(el => el.hidden = true);
+}
+
+// 1. Fix Recovery Init Form (Email check)
+const oldRecoveryInitForm = document.getElementById("recovery-init-form");
+if (oldRecoveryInitForm) {
+    const newRecoveryInitForm = oldRecoveryInitForm.cloneNode(true);
+    oldRecoveryInitForm.parentNode.replaceChild(newRecoveryInitForm, oldRecoveryInitForm);
+    
+    newRecoveryInitForm.addEventListener("submit", async function(e) {
+        e.preventDefault(); // STOPS THE RELOAD
+        const email = document.getElementById("recovery-email").value.trim();
+        const errElem = document.getElementById("recovery-init-error");
+        if (errElem) { errElem.textContent = ""; errElem.hidden = true; }
+
+        try {
+            const res = await fetch("/recovery/init", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: email })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                if (errElem) { errElem.textContent = data.error || "Failed to find account."; errElem.hidden = false; }
+                return;
+            }
+
+            newRecoveryInitForm.hidden = true;
+
+            if (data.method === "code") {
+                document.getElementById("recovery-code-form").hidden = false;
+                const msgElem = document.getElementById("recovery-code-msg");
+                if (msgElem) msgElem.textContent = data.message;
+            } else if (data.method === "knowledge") {
+                document.getElementById("recovery-knowledge-form").hidden = false;
+                const qElem = document.getElementById("recovery-question-text");
+                if (qElem) qElem.textContent = data.question;
+            }
+        } catch (err) {
+            console.error(err);
+            if (errElem) { errElem.textContent = "Connection error."; errElem.hidden = false; }
+        }
+    });
+}
+
+// 2. Fix Recovery Code Form
+const oldRecoveryCodeForm = document.getElementById("recovery-code-form");
+if (oldRecoveryCodeForm) {
+    const newRecoveryCodeForm = oldRecoveryCodeForm.cloneNode(true);
+    oldRecoveryCodeForm.parentNode.replaceChild(newRecoveryCodeForm, oldRecoveryCodeForm);
+    
+    newRecoveryCodeForm.addEventListener("submit", async function(e) {
+        e.preventDefault(); // STOPS THE RELOAD
+        const code = document.getElementById("recovery-code").value.trim();
+        const errElem = document.getElementById("recovery-code-error");
+        if (errElem) { errElem.textContent = ""; errElem.hidden = true; }
+
+        if (code.length !== 16) {
+            if (errElem) { errElem.textContent = "Code must be 16 characters."; errElem.hidden = false; }
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("recovery_code", code);
+
+        try {
+            const res = await fetch("/recovery", { method: "POST", body: formData });
+            const data = await res.json();
+
+            if (!res.ok) {
+                if (errElem) { errElem.textContent = data.error || "Verification failed."; errElem.hidden = false; }
+                return;
+            }
+            
+            resetRecoveryUI();
+            if (typeof showDashboard === "function") showDashboard();
+        } catch (err) {
+            console.error(err);
+            if (errElem) { errElem.textContent = "Connection error."; errElem.hidden = false; }
+        }
+    });
+}
+
+// 3. Fix Recovery Knowledge Form
+const oldRecoveryKnowledgeForm = document.getElementById("recovery-knowledge-form");
+if (oldRecoveryKnowledgeForm) {
+    const newRecoveryKnowledgeForm = oldRecoveryKnowledgeForm.cloneNode(true);
+    oldRecoveryKnowledgeForm.parentNode.replaceChild(newRecoveryKnowledgeForm, oldRecoveryKnowledgeForm);
+    
+    newRecoveryKnowledgeForm.addEventListener("submit", async function(e) {
+        e.preventDefault(); // STOPS THE RELOAD
+        const email = document.getElementById("recovery-email").value.trim();
+        const answer = document.getElementById("recovery-answer").value;
+        const errElem = document.getElementById("recovery-knowledge-error");
+        if (errElem) { errElem.textContent = ""; errElem.hidden = true; }
+
+        try {
+            const res = await fetch("/recovery/knowledge", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: email, answer: answer })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                if (errElem) { errElem.textContent = data.error || "Incorrect answer."; errElem.hidden = false; }
+                return;
+            }
+            
+            resetRecoveryUI();
+            if (typeof showDashboard === "function") showDashboard();
+        } catch (err) {
+            console.error(err);
+            if (errElem) { errElem.textContent = "Connection error."; errElem.hidden = false; }
+        }
+    });
+}
+
+// 4. BACKUP: If you are still using the old single-step legacy HTML form
+const oldLegacyRecoveryForm = document.getElementById("recovery-form");
+if (oldLegacyRecoveryForm) {
+    const newLegacyRecoveryForm = oldLegacyRecoveryForm.cloneNode(true);
+    oldLegacyRecoveryForm.parentNode.replaceChild(newLegacyRecoveryForm, oldLegacyRecoveryForm);
+    
+    newLegacyRecoveryForm.addEventListener("submit", async function(e) {
+        e.preventDefault(); // STOPS THE RELOAD
+        const code = document.getElementById("recovery-code").value.trim();
+        const errElem = document.getElementById("recovery-error");
+        if (errElem) { errElem.textContent = ""; errElem.hidden = true; }
+
+        if (code.length !== 16) {
+            if (errElem) { errElem.textContent = "Code must be 16 characters."; errElem.hidden = false; }
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("recovery_code", code);
+
+        try {
+            const res = await fetch("/recovery", { method: "POST", body: formData });
+            const data = await res.json();
+
+            if (!res.ok) {
+                if (errElem) { errElem.textContent = data.error || "Verification failed."; errElem.hidden = false; }
+                return;
+            }
+            
+            newLegacyRecoveryForm.reset();
+            if (typeof showDashboard === "function") showDashboard();
+        } catch (err) {
+            console.error(err);
+            if (errElem) { errElem.textContent = "Connection error."; errElem.hidden = false; }
+        }
+    });
+}

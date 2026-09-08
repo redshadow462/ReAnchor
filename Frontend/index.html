@@ -243,11 +243,7 @@
         <main class="container">
 
             <a href="#" class="logo-link">
-                <img
-                    src="images/Reanchor.jpg"
-                    alt="ReAnchor"
-                    class="logo-image"
-                >
+                <img src="images/Reanchor.jpg" alt="ReAnchor" class="logo-image">
             </a>
 
             <p class="subtitle">
@@ -257,50 +253,57 @@
             <section class="card" aria-labelledby="recovery-heading">
 
                 <h1 id="recovery-heading">Recover Account</h1>
-
                 <p class="card-description">
-                    Enter your 16-character recovery code to begin
-                    recovering your account.
+                    Identify your account to view recovery options.
                 </p>
 
-                <form id="recovery-form">
-
+                <!-- STEP 1: Identify Account via Email -->
+                <form id="recovery-init-form">
                     <div class="form-group">
-                        <label for="recovery-code">
-                            Recovery Code
-                        </label>
-
-                        <input
-                            id="recovery-code"
-                            name="recovery_code"
-                            type="text"
-                            maxlength="16"
-                            autocomplete="off"
-                            placeholder="Enter recovery code"
-                            required
-                        >
-
-                        <p
-                            id="recovery-error"
-                            class="setup-error"
-                            hidden>
-                        </p>
-
-                        <button type="submit">
-                            Verify Recovery Code
-                        </button>
+                        <label for="recovery-email">Email Address</label>
+                        <input id="recovery-email" type="email" autocomplete="email" placeholder="Enter your email" required>
+                    </div>
+                    <p id="recovery-init-error" class="setup-error" hidden></p>
+                    <button type="submit">Find Account</button>
+                    <button type="button" class="secondary" onclick="showLogin(); resetRecoveryUI();">Back to Login</button>
                 </form>
 
-                <button
-                    type="button"
-                    class="secondary"
-                    onclick="showLogin()"
-                >
-                    Back to Login
-                </button>
+                <!-- STEP 2A: Standard Recovery Code -->
+                <form id="recovery-code-form" hidden>
+                    <div class="alert-banner success" style="margin-bottom: 18px;">
+                        <strong id="recovery-code-msg">You have codes remaining.</strong>
+                    </div>
+                    <div class="form-group">
+                        <label for="recovery-code">Enter Recovery Code</label>
+                        <input id="recovery-code" type="text" maxlength="16" autocomplete="off" placeholder="16-character code" required style="text-align: center; letter-spacing: 0.15em;">
+                    </div>
+                    <p id="recovery-code-error" class="setup-error" hidden></p>
+                    <button type="submit">Verify Code & Login</button>
+                    <button type="button" class="secondary" onclick="showLogin(); resetRecoveryUI();">Cancel</button>
+                </form>
+
+                <!-- STEP 2B: Fallback Knowledge Anchor -->
+                <form id="recovery-knowledge-form" hidden>
+                    <div class="alert-banner danger" style="margin-bottom: 18px;">
+                        <div>
+                            <strong>⚠️ 0 CODES REMAINING</strong><br>
+                            Fallback Security Protocol Initiated.
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Security Question</label>
+                        <p id="recovery-question-text" style="color: var(--teal); font-weight: 700; margin-bottom: 10px; font-size: 0.95rem;"></p>
+                    </div>
+                    <div class="form-group">
+                        <label for="recovery-answer">Your Private Answer</label>
+                        <input id="recovery-answer" type="password" autocomplete="off" placeholder="Enter your exact answer" required>
+                    </div>
+                    <p id="recovery-knowledge-error" class="setup-error" hidden></p>
+                    <button type="submit">Verify Answer & Login</button>
+                    <button type="button" class="secondary" onclick="showLogin(); resetRecoveryUI();">Cancel</button>
+                </form>
 
             </section>
-            
 
         </main>
 
