@@ -1404,3 +1404,62 @@ if (saveKnowledgeAnchor) {
         }
     );
 }
+
+// =========================
+// DEAD MAN'S SWITCH (DMS)
+// =========================
+
+async function loadDMSStatus() {
+    try {
+        const response = await fetch("/dms/status");
+        if (!response.ok) return;
+        const data = await response.json();
+        
+        const statusText = document.getElementById("dms-status-text");
+        const detailsText = document.getElementById("dms-details");
+        
+        if (statusText && detailsText) {
+            if (data.trigger_status === "pending") {
+                statusText.textContent = "TRIGGER PENDING";
+                statusText.style.color = "var(--danger)";
+                detailsText.textContent = `Confirming at: ${new Date(data.confirm_at).toLocaleString()}`;
+            } else if (data.trigger_status === "confirmed") {
+                statusText.textContent = "CONFIRMED";
+                statusText.style.color = "var(--danger)";
+                detailsText.textContent = "Your delegates now have access.";
+            } else {
+                statusText.textContent = data.enabled ? "ACTIVE" : "DISABLED";
+                statusText.style.color = "var(--teal)";
+                detailsText.textContent = `${data.days_remaining} days remaining until trigger.`;
+            }
+        }
+    } catch (err) {
+        console.error("Failed to load DMS status:", err);
+    }
+}
+
+const checkinBtn = document.getElementById("dms-checkin-btn");
+if (checkinBtn) {
+    checkinBtn.addEventListener("click", async () => {
+        try {
+            const response = await fetch("/dms/check-in", { method: "POST" });
+            const data = await response.json();
+            if (response.ok) {
+                alert(data.message);
+                loadDMSStatus(); // Refresh the timer
+            } else {
+                alert(data.error || "Check-in failed.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Server error during check-in.");
+        }
+    });
+}
+
+// Hook into the existing showDashboard function to load DMS data automatically
+const originalShowDashboard = showDashboard;
+showDashboard = function() {
+    originalShowDashboard();
+    loadDMSStatus();
+};

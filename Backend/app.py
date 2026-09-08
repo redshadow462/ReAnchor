@@ -11,6 +11,7 @@ import secrets
 from dotenv import load_dotenv
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
+from dms import dms_bp
 
 from webauthn import (
     generate_registration_options,
@@ -30,6 +31,8 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY")
 ph = PasswordHasher()
+
+app.register_blueprint(dms_bp)
 
 RP_ID = "localhost"
 RP_NAME = "ReAnchor"
@@ -204,7 +207,21 @@ def login():
         }), 200
         
     session["user_id"] = user_id
-    return jsonify({"status": "ok", "message": "Logged in successfully"}), 200
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE users SET last_activity = CURRENT_TIMESTAMP WHERE user_id = %s",
+        (user_id,)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify({
+        "status": "ok",
+        "message": "Logged in successfully"
+    }), 200
 
 @app.route("/2fa/setup", methods=["POST"])
 def totp_setup():
@@ -254,7 +271,7 @@ def totp_verify():
         conn.commit()
         cursor.close()
         conn.close()
-        recovery_codes = [generate_recovery_code() for _ in range(5)]
+        recovery_codes = [generate_recovery_code() for _ in range(8)]
         store_recovery_codes(user_id, recovery_codes)
         return jsonify({"status": "enabled", "message": "Authenticator enabled successfully", "recovery_codes": recovery_codes}), 200
     cursor.close()
@@ -276,12 +293,32 @@ def totp_challenge():
     if not result: return jsonify({"error": "2FA is not enabled"}), 400
     totp_secret = result[0]
     totp = pyotp.TOTP(totp_secret)
+
     if totp.verify(user_otp, valid_window=1):
+
         session["user_id"] = user_id
         session.pop("pending_user_id", None)
-        return jsonify({"status": "ok", "message": "2FA verified. Login successful."}), 200
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "UPDATE users SET last_activity = CURRENT_TIMESTAMP WHERE user_id = %s",
+            (user_id,)
+        )
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "status": "ok",
+            "message": "2FA verified. Login successful."
+        }), 200
+
     return jsonify({"error": "Invalid verification code"}), 401
 
+    
 @app.route("/recovery/confirm", methods=["POST"])
 def confirm_recovery_code():
     if "user_id" not in session: return jsonify({"error": "Not authenticated"}), 401
@@ -432,7 +469,23 @@ def webauthn_login_verify():
     session.pop("webauthn_login_user_id", None)
     session.pop("pending_user_id", None)
     session["user_id"] = user_id
-    return jsonify({"status": "ok", "message": "Passkey login successful."}), 200
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE users SET last_activity = CURRENT_TIMESTAMP WHERE user_id = %s",
+        (user_id,)
+    )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify({
+        "status": "ok",
+        "message": "Passkey login successful."
+    }), 200
 
 @app.route("/recovery", methods=["POST"])
 def recovery_login():
@@ -578,6 +631,207 @@ def save_knowledge_anchor():
         "status": "ok",
         "message": "Knowledge anchor saved."
     }), 200
+# =========================
+# VAULT
+# =========================
+
+@app.route("/api/vault", methods=["GET"])
+def get_vault():
+
+    if "user_id" not in session:
+        return jsonify({
+            "error": "Not authenticated"
+        }), 401
+
+    user_id = session["user_id"]
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            vault_id,
+            title,
+            secret_content,
+            category,
+            created_at,
+            updated_at
+        FROM vault_data
+        WHERE user_id = %s
+        ORDER BY updated_at DESC
+        """,
+        (user_id,)
+    )
+
+    rows = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    vault_items = []
+
+    for row in rows:
+        vault_items.append({
+            "vault_id": row[0],
+            "title": row[1],
+            "secret_content": row[2],
+            "category": row[3],
+            "created_at": (
+                row[4].isoformat()
+                if row[4] else None
+            ),
+            "updated_at": (
+                row[5].isoformat()
+                if row[5] else None
+            )
+        })
+
+    return jsonify(vault_items), 200
+
+
+@app.route("/api/vault/save", methods=["POST"])
+def save_vault():
+
+    if "user_id" not in session:
+        return jsonify({
+            "error": "Not authenticated"
+        }), 401
+
+    data = request.get_json(silent=True) or {}
+
+    title = (data.get("title") or "").strip()
+    secret_content = (data.get("secret_content") or "").strip()
+    category = (data.get("category") or "general").strip()
+
+    if not title:
+        return jsonify({
+            "error": "Vault title is required."
+        }), 400
+
+    if not secret_content:
+        return jsonify({
+            "error": "Vault content is required."
+        }), 400
+
+    user_id = session["user_id"]
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO vault_data
+        (
+            user_id,
+            title,
+            secret_content,
+            category
+        )
+        VALUES (%s, %s, %s, %s)
+        """,
+        (
+            user_id,
+            title,
+            secret_content,
+            category
+        )
+    )
+
+    conn.commit()
+
+    vault_id = cursor.lastrowid
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({
+        "status": "ok",
+        "vault_id": vault_id,
+        "message": "Vault item saved successfully."
+    }), 200
+
+
+@app.route("/api/vault/delete/<int:vault_id>", methods=["POST"])
+def delete_vault(vault_id):
+
+    if "user_id" not in session:
+        return jsonify({
+            "error": "Not authenticated"
+        }), 401
+
+    user_id = session["user_id"]
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        DELETE FROM vault_data
+        WHERE vault_id = %s
+        AND user_id = %s
+        """,
+        (
+            vault_id,
+            user_id
+        )
+    )
+
+    conn.commit()
+
+    deleted = cursor.rowcount
+
+    cursor.close()
+    conn.close()
+
+    if deleted == 0:
+        return jsonify({
+            "error": "Vault item not found."
+        }), 404
+
+    return jsonify({
+        "status": "ok",
+        "message": "Vault item deleted."
+    }), 200
+
+@app.route("/api/me", methods=["GET"])
+def get_current_user():
+
+    if "user_id" not in session:
+        return jsonify({
+            "error": "Not authenticated"
+        }), 401
+
+    user_id = session["user_id"]
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT user_id, username, email
+        FROM users
+        WHERE user_id = %s
+        """,
+        (user_id,)
+    )
+
+    row = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    if not row:
+        return jsonify({
+            "error": "User not found"
+        }), 404
+
+    return jsonify({
+        "user_id": row[0],
+        "username": row[1],
+        "email": row[2]
+    }), 200
+
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
