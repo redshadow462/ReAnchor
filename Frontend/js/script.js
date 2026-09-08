@@ -1473,13 +1473,13 @@ if (btnSimulateAttack) {
                     const blockedList = document.getElementById("blocked-ips-list");
                     if (blockedList.innerHTML.includes("No active threats")) blockedList.innerHTML = "";
                     
-                    // Add Ping button to the UI
-                    blockedList.innerHTML += `
-                        <div style="background: #1a1a1a; padding: 10px; border: 1px solid #333; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="color: var(--danger); font-family: 'IBM Plex Mono', monospace;">${badIp}</span>
-                            <button class="btn-mini" onclick="pingAttacker('${badIp}')" style="margin: 0; background: var(--teal); color: #000;">Trace / Ping</button>
-                        </div>
-                    `;
+                // Add Ping button to the UI
+                blockedList.innerHTML += `
+                    <div style="background: #1a1a1a; padding: 12px 15px; border: 1px solid #333; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+                        <span style="color: var(--danger); font-family: 'IBM Plex Mono', monospace; word-break: break-all;">${badIp}</span>
+                        <button class="btn-mini" onclick="pingAttacker('${badIp}')" style="margin: 0; background: var(--teal); color: #000; flex-shrink: 0;">Trace / Ping</button>
+                    </div>
+                `;
                     break;
                 } else if (res.status === 401) {
                     consoleLog.innerHTML += `<span style="color: var(--warning);">[RESULT] Failed: ${data.error}</span><br>`;
