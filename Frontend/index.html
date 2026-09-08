@@ -766,6 +766,19 @@
     </div>
 </div>
 
+<!-- Modal: Secure Check-In -->
+<div id="checkInModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 450px;">
+        <h2 style="color: var(--teal);">Secure Check-In</h2>
+        <p style="color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; margin-bottom: 20px;">
+            Enter your 6-digit authenticator code to verify you are active.
+        </p>
+        <input type="text" id="checkin-otp" placeholder="Enter 6-digit Code" style="text-align: center; letter-spacing: 0.2em;">
+        <p id="checkin-error" class="setup-error" hidden></p>
+        <button type="button" id="btnSubmitCheckIn" style="margin-top: 16px;">Verify & Check In</button>
+        <button type="button" class="link-btn" onclick="closeCheckInModal()">Cancel</button>
+    </div>
+</div>
 
     <script src="js/script.js"></script>
 

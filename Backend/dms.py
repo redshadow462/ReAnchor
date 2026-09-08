@@ -241,17 +241,50 @@ def dms_status():
 
 @dms_bp.route("/dms/check-in", methods=["POST"])
 def check_in():
-    """Manual 'I am alive' check-in by the account owner."""
+    """Manual 'I am alive' check-in by the account owner, secured by 2FA."""
     if "user_id" not in session:
         return jsonify({"error": "Not authenticated"}), 401
 
     user_id = session["user_id"]
+    data = request.form if request.form else request.get_json(silent=True) or {}
+    otp = data.get("otp", "").strip()
+
+    if not otp:
+        return jsonify({"error": "Verification code required for check-in"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Check TOTP
+    cursor.execute("SELECT secret FROM totp_credentials WHERE user_id = %s AND enabled = 1", (user_id,))
+    row = cursor.fetchone()
+
+    if not row:
+        # Fallback to password check if TOTP not enabled
+        cursor.execute("SELECT password_hash FROM users WHERE user_id = %s", (user_id,))
+        prow = cursor.fetchone()
+        try:
+            ph.verify(prow[0], otp)
+        except Exception:
+            cursor.close()
+            conn.close()
+            return jsonify({"error": "2FA verification code or password invalid"}), 401
+    else:
+        totp = pyotp.TOTP(row[0])
+        if not totp.verify(otp, valid_window=1):
+            cursor.close()
+            conn.close()
+            return jsonify({"error": "Invalid verification code"}), 401
+
+    cursor.close()
+    conn.close()
+
     touch_last_activity(user_id)
-    log_audit(user_id, "owner", user_id, "check_in", "Manual check-in received")
+    log_audit(user_id, "owner", user_id, "check_in", "Manual check-in received securely via 2FA")
 
     return jsonify({
         "status": "ok",
-        "message": "Activity recorded. Dead Man's Switch timer reset."
+        "message": "Activity recorded securely. Dead Man's Switch timer reset."
     }), 200
 
 
