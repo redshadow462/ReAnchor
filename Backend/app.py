@@ -832,6 +832,139 @@ def get_current_user():
         "email": row[2]
     }), 200
 
+# =========================================================
+# KNOWLEDGE ANCHOR & DYNAMIC RECOVERY FALLBACK
+# =========================================================
 
+KNOWLEDGE_QUESTIONS = {
+    1: "What was the first operating system you installed yourself?",
+    2: "Which superhero's power do you consider completely useless?",
+    3: "What specific pizza topping do you absolutely refuse to eat?",
+    4: "What was the first command-line tool you ever memorized?",
+    5: "What is the name of the first fictional weapon you wished you owned?",
+    6: "Which video game boss took you the most tries to defeat?",
+    7: "What specific beverage is your must-have for late-night studying?",
+    8: "What was your absolute least favorite subject in middle school?",
+    9: "Which anime or movie universe would you hate living in the most?",
+    10: "What was the first computer program you remember being fascinated by?",
+    11: "What is the one household chore you despise doing the most?",
+    12: "What specific PC hardware part would you always upgrade first?",
+    13: "What board game always caused arguments in your family?",
+    14: "What was your favorite playground game in primary school?",
+    15: "What was the first fictional world you remember imagining in detail?"
+}
+
+def normalize_knowledge_answer(answer):
+    return " ".join(str(answer).strip().lower().split())
+
+@app.route("/recovery/init", methods=["POST"])
+def recovery_init():
+    """Checks if the user has codes left. If 0, falls back to Knowledge Anchor."""
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT user_id, username FROM users WHERE email = %s", (email,))
+    user_row = cursor.fetchone()
+
+    if not user_row:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Account not found."}), 404
+
+    user_id = user_row[0]
+
+    # Count unused recovery codes
+    cursor.execute("SELECT COUNT(*) FROM recovery_codes WHERE user_id = %s AND used = 0", (user_id,))
+    codes_count = cursor.fetchone()[0]
+
+    if codes_count > 0:
+        cursor.close()
+        conn.close()
+        return jsonify({
+            "method": "code", 
+            "message": f"You have {codes_count} recovery codes remaining."
+        }), 200
+
+    # If 0 codes, fetch their Knowledge Anchor
+    cursor.execute("SELECT question_id FROM knowledge_anchors WHERE user_id = %s", (user_id,))
+    anchor_row = cursor.fetchone()
+    
+    cursor.close()
+    conn.close()
+
+    if not anchor_row:
+        return jsonify({"error": "0 recovery codes remaining and no Security Question set. Account locked."}), 403
+
+    question_id = anchor_row[0]
+    question_text = KNOWLEDGE_QUESTIONS.get(question_id, "Unknown security question.")
+
+    return jsonify({
+        "method": "knowledge",
+        "question": question_text
+    }), 200
+
+
+@app.route("/recovery/knowledge", methods=["POST"])
+def recovery_knowledge():
+    """Verifies the Knowledge Anchor answer and logs the user in."""
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    answer = data.get("answer", "")
+
+    if not email or not answer:
+        return jsonify({"error": "Email and answer are required"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT user_id, username FROM users WHERE email = %s", (email,))
+    user_row = cursor.fetchone()
+
+    if not user_row:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Account not found."}), 404
+
+    user_id, username = user_row[0], user_row[1]
+
+    cursor.execute("SELECT answer_hash FROM knowledge_anchors WHERE user_id = %s", (user_id,))
+    anchor_row = cursor.fetchone()
+
+    if not anchor_row:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "No knowledge anchor set."}), 400
+
+    answer_hash = anchor_row[0]
+    normalized_answer = normalize_knowledge_answer(answer)
+
+    try:
+        ph.verify(answer_hash, normalized_answer)
+    except VerifyMismatchError:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Incorrect answer. Access denied."}), 401
+
+    # SUCCESS -> Manually update last activity with direct SQL
+    cursor.execute(
+        "UPDATE users SET last_activity = CURRENT_TIMESTAMP WHERE user_id = %s",
+        (user_id,)
+    )
+    conn.commit()
+    
+    cursor.close()
+    conn.close()
+
+    session.clear()
+    session["user_id"] = user_id
+    session["username"] = username
+
+    return jsonify({"status": "ok", "message": "Identity verified via Knowledge Anchor."}), 200
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
